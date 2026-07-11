@@ -17,6 +17,8 @@ class AuthorSource(str, Enum):
     dropbox = "dropbox"
     mega = "mega"
     reddit = "reddit"
+    homebrewery = "homebrewery"
+    gmbinder = "gmbinder"
 
 
 class AuthorLinkSchema(BaseModel):

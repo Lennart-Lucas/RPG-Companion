@@ -3,7 +3,16 @@ import re
 from pydantic import BaseModel, field_validator
 
 SOURCE_VALUES = frozenset(
-    {"website", "patreon", "drive", "dropbox", "mega", "reddit"}
+    {
+        "website",
+        "patreon",
+        "drive",
+        "dropbox",
+        "mega",
+        "reddit",
+        "homebrewery",
+        "gmbinder",
+    }
 )
 
 URL_PATTERN = re.compile(r"^https?://", re.IGNORECASE)

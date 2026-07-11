@@ -41,6 +41,8 @@ abstract final class AuthorSourceOptions {
     'dropbox',
     'mega',
     'reddit',
+    'homebrewery',
+    'gmbinder',
   ];
 
   static String labelFor(String value) {
@@ -55,6 +57,10 @@ abstract final class AuthorSourceOptions {
         return 'Mega';
       case 'reddit':
         return 'Reddit';
+      case 'homebrewery':
+        return 'Homebrewery';
+      case 'gmbinder':
+        return 'GMbinder';
       case 'website':
       default:
         return 'Website';
