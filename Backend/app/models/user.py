@@ -32,3 +32,6 @@ class User(Base):
     files: Mapped[list["ResourceFile"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    classes: Mapped[list["CharacterClass"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )

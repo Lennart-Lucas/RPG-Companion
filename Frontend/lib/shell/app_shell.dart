@@ -29,6 +29,25 @@ class AppShell extends StatelessWidget {
       },
       menuItems: [
         MenuGroup(
+          key: 'player',
+          label: 'Player',
+          iconName: 'User',
+          children: [
+            MenuLink(
+              key: 'classes',
+              label: 'Classes',
+              iconName: 'Graduation Cap',
+              content: _placeholderContent,
+            ),
+            MenuLink(
+              key: 'spells',
+              label: 'Spells',
+              iconName: 'Wand Magic Sparkles',
+              content: _placeholderContent,
+            ),
+          ],
+        ),
+        MenuGroup(
           key: 'dm-tools',
           label: 'DM Tools',
           iconName: 'Dice D20',

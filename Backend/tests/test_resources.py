@@ -109,3 +109,55 @@ async def test_file_crud_with_author_filter(client: AsyncClient):
 
     deleted = await client.delete(f"{API}/files/{file_id}", headers=headers)
     assert deleted.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_class_crud_with_file_source(client: AsyncClient):
+    token = await _register_and_login(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    resource_file = await client.post(
+        f"{API}/files",
+        headers=headers,
+        json={
+            "name": "Class Source PDF",
+            "address": "https://example.com/class.pdf",
+        },
+    )
+    assert resource_file.status_code == 201
+    file_id = resource_file.json()["id"]
+
+    create = await client.post(
+        f"{API}/classes",
+        headers=headers,
+        json={
+            "name": "Wizard",
+            "file_id": file_id,
+            "caster": True,
+        },
+    )
+    assert create.status_code == 201
+    character_class = create.json()
+    assert character_class["name"] == "Wizard"
+    assert character_class["file_id"] == file_id
+    assert character_class["caster"] is True
+    class_id = character_class["id"]
+
+    listing = await client.get(f"{API}/classes", headers=headers)
+    assert listing.status_code == 200
+    assert listing.json()["total"] == 1
+
+    detail = await client.get(f"{API}/classes/{class_id}", headers=headers)
+    assert detail.status_code == 200
+
+    updated = await client.patch(
+        f"{API}/classes/{class_id}",
+        headers=headers,
+        json={"caster": False, "name": "Mage"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "Mage"
+    assert updated.json()["caster"] is False
+
+    deleted = await client.delete(f"{API}/classes/{class_id}", headers=headers)
+    assert deleted.status_code == 204

@@ -21,6 +21,27 @@ const IconSet rpgSidebarIcons = IconSet(
       sequence: 1,
       tags: ['dice', 'd20', 'rpg', 'game', 'tabletop'],
     ),
+    IconEntry(
+      name: 'User',
+      data: FontAwesomeIcons.user,
+      category: 'RPG',
+      sequence: 2,
+      tags: ['player', 'character', 'user', 'person'],
+    ),
+    IconEntry(
+      name: 'Wand Magic Sparkles',
+      data: FontAwesomeIcons.wandMagicSparkles,
+      category: 'RPG',
+      sequence: 3,
+      tags: ['spells', 'magic', 'wizard', 'sorcery'],
+    ),
+    IconEntry(
+      name: 'Graduation Cap',
+      data: FontAwesomeIcons.graduationCap,
+      category: 'RPG',
+      sequence: 4,
+      tags: ['classes', 'character', 'player', 'school'],
+    ),
   ],
 );
 
@@ -36,4 +57,7 @@ void setupRpgIcons() {
 
   registry.setAlias('dm-tools', 'Dice D20');
   registry.setAlias('resources', 'Book');
+  registry.setAlias('player', 'User');
+  registry.setAlias('classes', 'Graduation Cap');
+  registry.setAlias('spells', 'Wand Magic Sparkles');
 }

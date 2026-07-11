@@ -14,6 +14,9 @@ import 'package:rpg_companion/features/dm_tools/resources/files/pages/file_creat
 import 'package:rpg_companion/features/dm_tools/resources/files/pages/file_detail_page.dart';
 import 'package:rpg_companion/features/dm_tools/resources/files/pages/file_edit_page.dart';
 import 'package:rpg_companion/features/dm_tools/resources/pages/resources_page.dart';
+import 'package:rpg_companion/features/player/classes/pages/class_create_page.dart';
+import 'package:rpg_companion/features/player/classes/pages/classes_page.dart';
+import 'package:rpg_companion/features/player/spells/pages/spells_page.dart';
 import 'package:rpg_companion/shell/app_shell.dart';
 
 Page<void> _noTransitionPage({
@@ -80,6 +83,20 @@ GoRouter buildRpgRouter({
           return AppShell(navigationShell: navigationShell);
         },
         branches: [
+          _shellBranch(
+            path: RpgRoutes.playerClasses,
+            child: const ClassesPage(),
+            nestedRoutes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) => const ClassCreatePage(),
+              ),
+            ],
+          ),
+          _shellBranch(
+            path: RpgRoutes.playerSpells,
+            child: const SpellsPage(),
+          ),
           _shellBranch(
             path: RpgRoutes.dmToolsResources,
             child: const ResourcesPage(),
@@ -212,5 +229,9 @@ abstract final class RpgNavigation {
     ResourceFile file,
   ) {
     return context.push(RpgRoutes.fileEdit(file.id), extra: file);
+  }
+
+  static Future<void> openClassCreate(BuildContext context) {
+    return context.push(RpgRoutes.classCreate);
   }
 }

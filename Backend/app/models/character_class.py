@@ -1,23 +1,23 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
 
-class ResourceFile(Base):
-    __tablename__ = "files"
+class CharacterClass(Base):
+    __tablename__ = "classes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    author_id: Mapped[int | None] = mapped_column(
-        ForeignKey("authors.id", ondelete="SET NULL"), nullable=True, index=True
+    file_id: Mapped[int | None] = mapped_column(
+        ForeignKey("files.id", ondelete="SET NULL"), nullable=True, index=True
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    address: Mapped[str] = mapped_column(String(512), nullable=False)
+    caster: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -31,8 +31,7 @@ class ResourceFile(Base):
         DateTime(timezone=True), nullable=True, index=True
     )
 
-    user: Mapped["User"] = relationship(back_populates="files")
-    author: Mapped["Author | None"] = relationship(back_populates="files")
-    classes: Mapped[list["CharacterClass"]] = relationship(
-        back_populates="source_file"
+    user: Mapped["User"] = relationship(back_populates="classes")
+    source_file: Mapped["ResourceFile | None"] = relationship(
+        back_populates="classes"
     )

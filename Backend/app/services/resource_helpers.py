@@ -48,3 +48,29 @@ async def assert_author_owned(
 ) -> None:
     if author_id is not None:
         await get_author_owned(session, author_id, user_id)
+
+
+async def get_file_owned(
+    session: AsyncSession, file_id: int, user_id: int
+) -> ResourceFile:
+    result = await session.execute(
+        select(ResourceFile).where(
+            ResourceFile.id == file_id,
+            ResourceFile.user_id == user_id,
+            ResourceFile.deleted_at.is_(None),
+        )
+    )
+    resource_file = result.scalar_one_or_none()
+    if resource_file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found",
+        )
+    return resource_file
+
+
+async def assert_file_owned(
+    session: AsyncSession, file_id: int | None, user_id: int
+) -> None:
+    if file_id is not None:
+        await get_file_owned(session, file_id, user_id)

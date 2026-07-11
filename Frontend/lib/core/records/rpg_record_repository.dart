@@ -150,6 +150,9 @@ class RpgRecordRepository implements RecordRepositoryService {
       }
       return keys;
     }
+    if (type == 'classes') {
+      return [classesListQuery.queryKey];
+    }
     return [RecordQuery(recordType: type, limit: 50).queryKey];
   }
 
@@ -164,12 +167,16 @@ class RpgRecordRepository implements RecordRepositoryService {
       }
       return keys;
     }
+    if (type == 'classes') {
+      return [classesListQuery.queryKey];
+    }
     return const [];
   }
 }
 
 const authorsListQuery = RecordQuery(recordType: 'authors', limit: 100);
 const filesListQuery = RecordQuery(recordType: 'files', limit: 100);
+const classesListQuery = RecordQuery(recordType: 'classes', limit: 100);
 
 RecordQuery filesForAuthorQuery(String authorId) {
   return RecordQuery(
