@@ -9,7 +9,7 @@ class ResourcesExpandableFab extends StatefulWidget {
   });
 
   final String? selectedAuthorId;
-  final VoidCallback? onChanged;
+  final void Function(String? expandAuthorId)? onChanged;
 
   @override
   State<ResourcesExpandableFab> createState() => _ResourcesExpandableFabState();
@@ -24,16 +24,16 @@ class _ResourcesExpandableFabState extends State<ResourcesExpandableFab>
   Future<void> _addAuthor() async {
     _toggle();
     await RpgNavigation.openAuthorCreate(context);
-    widget.onChanged?.call();
+    widget.onChanged?.call(null);
   }
 
   Future<void> _addFile() async {
     _toggle();
-    await RpgNavigation.openFileCreate(
+    final linkedAuthorId = await RpgNavigation.openFileCreate(
       context,
       authorId: widget.selectedAuthorId,
     );
-    widget.onChanged?.call();
+    widget.onChanged?.call(linkedAuthorId ?? widget.selectedAuthorId);
   }
 
   @override

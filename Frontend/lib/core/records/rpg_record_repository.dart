@@ -1,11 +1,15 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:rpg_companion/core/http/rpg_api_errors.dart';
+import 'package:rpg_companion/core/records/rpg_record_registry.dart';
+import 'package:rpg_companion/core/records/typed_record_cache.dart';
+import 'package:rpg_companion/features/dm_tools/resources/files/models/resource_file.dart';
 
 /// REST adapter for RPG Companion FastAPI list endpoints.
 class RpgRecordRepository implements RecordRepositoryService {
-  RpgRecordRepository(this._api);
+  RpgRecordRepository(this._api) : _registry = buildRpgRecordRegistry();
 
   final ApiClientService _api;
+  final RecordRegistry _registry;
 
   Map<String, dynamic> _normalizeRecord(Map<String, dynamic> json) {
     final out = Map<String, dynamic>.from(json);
@@ -13,6 +17,10 @@ class RpgRecordRepository implements RecordRepositoryService {
       out['id'] = out['id'].toString();
     }
     return out;
+  }
+
+  void _cacheTypedRecord(RecordType type, Map<String, dynamic> json) {
+    TypedRecordCache.instance.put(_registry.getConfig(type).fromJson(json));
   }
 
   void _ensureSuccess(ApiResponse response, String action) {
@@ -48,26 +56,42 @@ class RpgRecordRepository implements RecordRepositoryService {
   ) async {
     final response = await _api.post('/$type', body: data);
     _ensureSuccess(response, 'Create $type');
-    final body = response.bodyAsMap;
-    final listQueryKey = RecordQuery(recordType: type, limit: 50).queryKey;
+    final body = _normalizeRecord(response.bodyAsMap);
+    _cacheTypedRecord(type, body);
     return RecordMutationResponse(
-      record: RecordResponse(_normalizeRecord(body)),
-      impact: RecordMutation(invalidatedQueries: [listQueryKey]),
+      record: RecordResponse(body),
+      impact: RecordMutation(
+        invalidatedQueries: _invalidatedQueriesForType(type, data),
+      ),
     );
   }
 
   @override
   Future<RecordMutationResponse> delete(RecordType type, RecordId id) async {
+    String? authorId;
+    if (type == 'files') {
+      authorId =
+          TypedRecordCache.instance.get<ResourceFile>('files', id)?.authorId;
+    }
+
     final response = await _api.delete('/$type/$id');
     _ensureSuccess(response, 'Delete $type');
-    return const RecordMutationResponse(impact: RecordMutation.empty);
+    TypedRecordCache.instance.remove(type, id);
+    return RecordMutationResponse(
+      impact: RecordMutation(
+        deleted: [id],
+        invalidatedQueries: _invalidatedQueriesForDelete(type, authorId),
+      ),
+    );
   }
 
   @override
   Future<RecordResponse> fetchById(RecordType type, RecordId id) async {
     final response = await _api.get('/$type/$id');
     _ensureSuccess(response, 'Fetch $type');
-    return RecordResponse(_normalizeRecord(response.bodyAsMap));
+    final body = _normalizeRecord(response.bodyAsMap);
+    _cacheTypedRecord(type, body);
+    return RecordResponse(body);
   }
 
   @override
@@ -80,11 +104,9 @@ class RpgRecordRepository implements RecordRepositoryService {
     if (items is List) {
       for (final item in items) {
         if (item is Map) {
-          records.add(
-            RecordResponse(
-              _normalizeRecord(Map<String, dynamic>.from(item)),
-            ),
-          );
+          final normalized = _normalizeRecord(Map<String, dynamic>.from(item));
+          _cacheTypedRecord(query.recordType, normalized);
+          records.add(RecordResponse(normalized));
         }
       }
     }
@@ -102,22 +124,57 @@ class RpgRecordRepository implements RecordRepositoryService {
   ) async {
     final response = await _api.patch('/$type/$id', body: data);
     _ensureSuccess(response, 'Update $type');
-    final body = response.bodyAsMap;
-    final listQueryKey = RecordQuery(recordType: type, limit: 50).queryKey;
+    final body = _normalizeRecord(response.bodyAsMap);
+    _cacheTypedRecord(type, body);
     return RecordMutationResponse(
-      record: RecordResponse(_normalizeRecord(body)),
-      impact: RecordMutation(invalidatedQueries: [listQueryKey]),
+      record: RecordResponse(body),
+      impact: RecordMutation(
+        invalidatedQueries: _invalidatedQueriesForType(type, data, body),
+      ),
     );
+  }
+
+  List<String> _invalidatedQueriesForType(
+    RecordType type,
+    Map<String, dynamic> data, [
+    Map<String, dynamic>? responseBody,
+  ]) {
+    if (type == 'authors') {
+      return [authorsListQuery.queryKey];
+    }
+    if (type == 'files') {
+      final keys = <String>[filesListQuery.queryKey];
+      final authorId = data['author_id'] ?? responseBody?['author_id'];
+      if (authorId != null) {
+        keys.add(filesForAuthorQuery(authorId.toString()).queryKey);
+      }
+      return keys;
+    }
+    return [RecordQuery(recordType: type, limit: 50).queryKey];
+  }
+
+  List<String> _invalidatedQueriesForDelete(RecordType type, String? authorId) {
+    if (type == 'authors') {
+      return [authorsListQuery.queryKey];
+    }
+    if (type == 'files') {
+      final keys = <String>[filesListQuery.queryKey];
+      if (authorId != null && authorId.isNotEmpty) {
+        keys.add(filesForAuthorQuery(authorId).queryKey);
+      }
+      return keys;
+    }
+    return const [];
   }
 }
 
 const authorsListQuery = RecordQuery(recordType: 'authors', limit: 100);
-const filesListQuery = RecordQuery(recordType: 'files', limit: 200);
+const filesListQuery = RecordQuery(recordType: 'files', limit: 100);
 
 RecordQuery filesForAuthorQuery(String authorId) {
   return RecordQuery(
     recordType: 'files',
-    limit: 200,
+    limit: 100,
     filter: QueryCondition(
       field: 'author_id',
       operator: QueryOperator.eq,

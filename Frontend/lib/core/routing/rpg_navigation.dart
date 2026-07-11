@@ -190,14 +190,14 @@ abstract final class RpgNavigation {
     return context.push(RpgRoutes.authorEdit(author.id), extra: author);
   }
 
-  static Future<void> openFileCreate(
+  static Future<String?> openFileCreate(
     BuildContext context, {
     String? authorId,
   }) {
     final uri = authorId == null || authorId.isEmpty
         ? RpgRoutes.fileCreate
         : '${RpgRoutes.fileCreate}?authorId=$authorId';
-    return context.push(uri);
+    return context.push<String?>(uri);
   }
 
   static Future<void> openFileDetail(

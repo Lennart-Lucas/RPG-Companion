@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rpg_companion/core/records/record_list_refresh.dart';
-import 'package:rpg_companion/core/records/rpg_record_repository.dart';
 import 'package:rpg_companion/features/dm_tools/resources/files/forms/file_form_config.dart';
 
 class FileCreatePage extends StatelessWidget {
@@ -11,15 +10,12 @@ class FileCreatePage extends StatelessWidget {
 
   final RecordId? authorId;
 
-  Future<void> _refreshFiles(BuildContext context) {
-    final bloc = context.read<RecordBloc>();
-    final futures = <Future<void>>[
-      refreshRecordQuery(bloc, filesListQuery),
-    ];
-    if (authorId != null) {
-      futures.add(refreshRecordQuery(bloc, filesForAuthorQuery(authorId!)));
-    }
-    return Future.wait(futures);
+  String? _authorIdFromResult(dynamic data) {
+    if (data is! Map) return null;
+    final raw = data['author_id'];
+    if (raw == null) return null;
+    final id = raw.toString().trim();
+    return id.isEmpty ? null : id;
   }
 
   @override
@@ -48,13 +44,15 @@ class FileCreatePage extends StatelessWidget {
           ),
           submitLabel: 'Create file',
           onCancel: () => context.pop(),
-          onSubmitSuccess: (_) async {
-            await _refreshFiles(context);
+          onSubmitSuccess: (result) {
+            final linkedAuthorId =
+                _authorIdFromResult(result.data) ?? authorId?.toString();
+            forceRefreshFileQueries(recordBloc, authorId: linkedAuthorId);
             if (!context.mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('File created')),
             );
-            context.pop();
+            context.pop(linkedAuthorId);
           },
         ),
       ),

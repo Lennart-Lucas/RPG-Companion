@@ -7,6 +7,7 @@ import 'package:rpg_companion/core/routing/rpg_navigation.dart';
 import 'package:rpg_companion/features/dm_tools/resources/authors/models/author.dart';
 import 'package:rpg_companion/features/dm_tools/resources/files/models/resource_file.dart';
 import 'package:rpg_companion/features/dm_tools/resources/files/widgets/file_list_tile.dart';
+import 'package:rpg_companion/features/dm_tools/resources/services/resource_record_resolver.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AuthorDetailPage extends StatefulWidget {
@@ -35,29 +36,23 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
       bloc.add(
         GetRecordRequested(recordType: 'authors', recordId: widget.authorId),
       );
-      bloc.add(QueryRecordsRequested(filesForAuthorQuery(widget.authorId)));
+      bloc.remoteCoordinator?.refreshQueryRecords(
+        filesForAuthorQuery(widget.authorId),
+      );
     });
   }
 
   Author? _authorFromState(RecordState state) {
     if (widget.author != null) return widget.author;
-    final entry = state.snapshot.records[widget.authorId];
-    if (entry != null &&
-        !entry.isDeleted &&
-        entry.record is Author) {
-      return entry.record as Author;
-    }
-    return null;
+    return resolveTypedRecord<Author>(
+      state: state,
+      recordType: 'authors',
+      id: widget.authorId,
+    );
   }
 
   List<ResourceFile> _filesFromState(RecordState state) {
-    final query = filesForAuthorQuery(widget.authorId);
-    final cached = state.snapshot.queries[query.queryKey];
-    if (cached == null) return const [];
-    return cached.recordIds
-        .map((id) => state.snapshot.records[id]?.record)
-        .whereType<ResourceFile>()
-        .toList();
+    return resolveResourceFiles(state, filesForAuthorQuery(widget.authorId));
   }
 
   Future<void> _openEdit(Author author) {
@@ -104,6 +99,15 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<RecordBloc, RecordState>(
+      buildWhen: (previous, current) =>
+          queryRecordsDisplayChanged(
+            previous: previous,
+            current: current,
+            query: filesForAuthorQuery(widget.authorId),
+            recordType: 'files',
+          ) ||
+          previous.snapshot.records[widget.authorId]?.version !=
+              current.snapshot.records[widget.authorId]?.version,
       builder: (context, state) {
         final author = _authorFromState(state);
         final files = _filesFromState(state);

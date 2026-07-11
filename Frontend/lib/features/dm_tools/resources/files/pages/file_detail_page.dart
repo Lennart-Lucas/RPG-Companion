@@ -2,9 +2,12 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:rpg_companion/core/records/record_list_refresh.dart';
+import 'package:rpg_companion/core/records/typed_record_cache.dart';
 import 'package:rpg_companion/core/routing/rpg_navigation.dart';
 import 'package:rpg_companion/features/dm_tools/resources/authors/models/author.dart';
 import 'package:rpg_companion/features/dm_tools/resources/files/models/resource_file.dart';
+import 'package:rpg_companion/features/dm_tools/resources/services/resource_record_resolver.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class FileDetailPage extends StatefulWidget {
@@ -37,22 +40,20 @@ class _FileDetailPageState extends State<FileDetailPage> {
 
   ResourceFile? _fileFromState(RecordState state) {
     if (widget.file != null) return widget.file;
-    final entry = state.snapshot.records[widget.fileId];
-    if (entry != null &&
-        !entry.isDeleted &&
-        entry.record is ResourceFile) {
-      return entry.record as ResourceFile;
-    }
-    return null;
+    return resolveTypedRecord<ResourceFile>(
+      state: state,
+      recordType: 'files',
+      id: widget.fileId,
+    );
   }
 
   Author? _authorFromState(RecordState state, String? authorId) {
     if (authorId == null) return null;
-    final entry = state.snapshot.records[authorId];
-    if (entry != null && entry.record is Author) {
-      return entry.record as Author;
-    }
-    return null;
+    return resolveTypedRecord<Author>(
+      state: state,
+      recordType: 'authors',
+      id: authorId,
+    );
   }
 
   Future<void> _launchAddress(String address) async {
@@ -81,13 +82,19 @@ class _FileDetailPageState extends State<FileDetailPage> {
     );
     if (confirmed != true || !mounted) return;
 
+    final bloc = context.read<RecordBloc>();
+    final file = _fileFromState(bloc.state) ?? widget.file;
+    final authorId = file?.authorId;
+
     setState(() => _deleting = true);
-    context.read<RecordBloc>().add(
+    TypedRecordCache.instance.remove('files', widget.fileId);
+    bloc.add(
           DeleteRecordRequested(
             recordType: 'files',
             recordId: widget.fileId,
           ),
         );
+    forceRefreshFileQueries(bloc, authorId: authorId);
     if (!mounted) return;
     context.pop();
   }

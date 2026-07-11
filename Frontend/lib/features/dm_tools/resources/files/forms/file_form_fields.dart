@@ -4,8 +4,10 @@ import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rpg_companion/core/ui/rpg_form_styles.dart';
+import 'package:rpg_companion/core/records/rpg_record_repository.dart';
 import 'package:rpg_companion/features/dm_tools/resources/authors/models/author.dart';
 import 'package:rpg_companion/features/dm_tools/resources/files/models/resource_file.dart';
+import 'package:rpg_companion/features/dm_tools/resources/services/resource_record_resolver.dart';
 import 'package:rpg_companion/features/dm_tools/resources/widgets/transparent_form_panel.dart';
 
 class FileFormFields extends StatelessWidget {
@@ -95,10 +97,9 @@ class _AuthorPickerFieldState extends State<AuthorPickerField> {
   }
 
   void _loadAuthors() {
-    const query = RecordQuery(recordType: 'authors', limit: 100);
-    _queryKey = query.queryKey;
+    _queryKey = authorsListQuery.queryKey;
     setState(() => _isLoading = true);
-    _recordBloc!.add(QueryRecordsRequested(query));
+    _recordBloc!.remoteCoordinator?.refreshQueryRecords(authorsListQuery);
     _syncAuthors(_recordBloc!.state);
   }
 
@@ -107,10 +108,7 @@ class _AuthorPickerFieldState extends State<AuthorPickerField> {
     if (key == null) return;
     final cached = state.snapshot.queries[key];
     if (cached == null) return;
-    final authors = cached.recordIds
-        .map((id) => state.snapshot.records[id]?.record)
-        .whereType<Author>()
-        .toList();
+    final authors = resolveAuthors(state, authorsListQuery);
     if (!mounted) return;
     setState(() {
       _authors = authors;
