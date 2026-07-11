@@ -1,4 +1,4 @@
-/// Parsed wiki-link target from canonical `[[type:id|alias]]` syntax.
+/// Parsed wiki-link target from canonical `[[type:id]]` or `[[type:id|alias]]` syntax.
 class WikiLink {
   const WikiLink({
     required this.type,

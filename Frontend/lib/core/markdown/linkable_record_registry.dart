@@ -67,5 +67,6 @@ class IndexedLinkableRecord {
   final String name;
   final String typeLabel;
 
-  String get canonicalLink => '[[$type:$id|$name]]';
+  /// Canonical storage form inserted by autocomplete (name resolved at display time).
+  String get canonicalLink => '[[$type:$id]]';
 }

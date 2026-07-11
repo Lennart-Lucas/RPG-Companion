@@ -117,10 +117,10 @@ void main() {
         record: record,
       );
 
-      expect(updated, 'See [[authors:7|Jane Doe]]');
+      expect(updated, 'See [[authors:7]]');
       expect(
         cursorAfterWikiLinkInsert(context.tokenStart, record),
-        'See [[authors:7|Jane Doe]]'.length,
+        'See [[authors:7]]'.length,
       );
     });
   });

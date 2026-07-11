@@ -146,7 +146,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining('[[authors:42|Test Author]]'),
+        find.textContaining('[[authors:42]]'),
         findsOneWidget,
       );
     });

@@ -41,10 +41,13 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   final LayerLink _layerLink = LayerLink();
+  final GlobalKey _fieldAnchorKey = GlobalKey();
   OverlayEntry? _overlayEntry;
   StreamSubscription<RecordState>? _recordSub;
   List<IndexedLinkableRecord> _linkableRecords = const [];
   WikiLinkAutocompleteContext? _autocompleteContext;
+  int? _autocompleteCursor;
+  Timer? _overlayDismissTimer;
 
   @override
   void initState() {
@@ -59,6 +62,7 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
 
   @override
   void dispose() {
+    _overlayDismissTimer?.cancel();
     _removeOverlay();
     _recordSub?.cancel();
     _focusNode.removeListener(_handleFocusChange);
@@ -92,9 +96,19 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
   }
 
   void _handleFocusChange() {
-    if (!_focusNode.hasFocus) {
-      _removeOverlay();
+    if (_focusNode.hasFocus) {
+      _overlayDismissTimer?.cancel();
+      return;
     }
+
+    // Defer dismissal so overlay row taps can complete before the entry is removed.
+    _overlayDismissTimer?.cancel();
+    _overlayDismissTimer = Timer(const Duration(milliseconds: 200), () {
+      if (!mounted || _focusNode.hasFocus) return;
+      _removeOverlay();
+      _autocompleteContext = null;
+      _autocompleteCursor = null;
+    });
   }
 
   void _onChanged(String value) {
@@ -114,6 +128,7 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
 
     final contextMatch = detectWikiLinkAutocomplete(value, selection.baseOffset);
     _autocompleteContext = contextMatch;
+    _autocompleteCursor = contextMatch == null ? null : selection.baseOffset;
     if (contextMatch == null || !_focusNode.hasFocus) {
       _removeOverlay();
       return;
@@ -131,17 +146,30 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
 
     _overlayEntry = OverlayEntry(
       builder: (overlayContext) {
+        final anchor =
+            _fieldAnchorKey.currentContext?.findRenderObject() as RenderBox?;
+        if (anchor == null || !anchor.hasSize) {
+          return const SizedBox.shrink();
+        }
+
+        final layout = computeOverlayDropdownLayout(
+          context: overlayContext,
+          anchor: anchor,
+          preferredMaxHeight: 220,
+        );
+        final panelWidth = anchor.size.width;
+
         return Positioned(
-          width: 320,
+          width: panelWidth,
           child: CompositedTransformFollower(
             link: _layerLink,
-            showWhenUnlinked: true,
-            offset: const Offset(0, 8),
+            showWhenUnlinked: false,
+            offset: layout.offset,
             child: Material(
               elevation: 4,
               borderRadius: BorderRadius.circular(8),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 220),
+                constraints: BoxConstraints(maxHeight: layout.maxHeight),
                 child: matches.isEmpty
                     ? Padding(
                         padding: const EdgeInsets.all(12),
@@ -158,11 +186,15 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
                         itemCount: matches.length,
                         itemBuilder: (context, index) {
                           final record = matches[index];
-                          return ListTile(
-                            dense: true,
-                            title: Text(record.name),
-                            subtitle: Text(record.typeLabel),
-                            onTap: () => _selectRecord(record),
+                          return Listener(
+                            behavior: HitTestBehavior.opaque,
+                            onPointerDown: (_) => _selectRecord(record),
+                            child: ListTile(
+                              dense: true,
+                              title: Text(record.name),
+                              subtitle: Text(record.typeLabel),
+                              onTap: () => _selectRecord(record),
+                            ),
                           );
                         },
                       ),
@@ -191,8 +223,11 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
     final contextMatch = _autocompleteContext;
     if (contextMatch == null) return;
 
-    final selection = _controller.selection;
-    final cursor = selection.baseOffset;
+    _overlayDismissTimer?.cancel();
+
+    final cursor = _autocompleteCursor ?? _controller.selection.baseOffset;
+    if (cursor < 0 || cursor > _controller.text.length) return;
+
     final newText = insertWikiLink(
       text: _controller.text,
       tokenStart: contextMatch.tokenStart,
@@ -206,8 +241,10 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
       selection: TextSelection.collapsed(offset: newCursor),
     );
     _autocompleteContext = null;
+    _autocompleteCursor = null;
     _removeOverlay();
     _onChanged(newText);
+    _focusNode.requestFocus();
   }
 
   void _wrapSelection(String before, String after) {
@@ -261,6 +298,7 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
           children: [
             if (widget.enabled) _buildToolbar(context),
             CompositedTransformTarget(
+              key: _fieldAnchorKey,
               link: _layerLink,
               child: TextField(
                 controller: _controller,
