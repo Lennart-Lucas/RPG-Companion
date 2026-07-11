@@ -1,5 +1,5 @@
 name: rpg_companion
-description: "A new Flutter project."
+description: "RPG Companion Flutter app."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -9,6 +9,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_bloc: ^9.1.1
+  http: ^1.2.2
+  shared_preferences: ^2.5.3
+  go_router: ^16.0.0
+  anvil_foundry:
+    path: ../../../Github/anvil_foundry
 
 dev_dependencies:
   flutter_test:
