@@ -49,7 +49,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return AuthFormScope(
       child: Scaffold(
-        body: AnvilIconBackground(
+        body: AnvilBackgroundIcon(
           icon: Icons.lock_outline,
           child: Center(
             child: SingleChildScrollView(

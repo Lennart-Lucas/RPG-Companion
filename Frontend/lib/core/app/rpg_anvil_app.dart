@@ -50,7 +50,7 @@ class RpgAnvilApp {
     final apiClient = ApiClientService(httpClient, tokenProvider);
     final recordCoordinator = RecordCoordinatorService(
       RecordRegistry(),
-      RecordRepositoryService(apiClient),
+      HttpRecordRepositoryService(apiClient),
     );
     final recordBloc = RecordBloc(recordCoordinator);
 
