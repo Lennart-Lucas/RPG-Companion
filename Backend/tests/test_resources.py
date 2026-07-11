@@ -161,3 +161,43 @@ async def test_class_crud_with_file_source(client: AsyncClient):
 
     deleted = await client.delete(f"{API}/classes/{class_id}", headers=headers)
     assert deleted.status_code == 204
+
+
+async def test_spell_tag_crud(client: AsyncClient):
+    token = await _register_and_login(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    create = await client.post(
+        f"{API}/spell_tags",
+        headers=headers,
+        json={
+            "name": "Evocation",
+            "description": "See [[authors:1|Author]] for notes.",
+        },
+    )
+    assert create.status_code == 201
+    spell_tag = create.json()
+    assert spell_tag["name"] == "Evocation"
+    assert spell_tag["description"] == "See [[authors:1|Author]] for notes."
+    spell_tag_id = spell_tag["id"]
+
+    listing = await client.get(f"{API}/spell_tags", headers=headers)
+    assert listing.status_code == 200
+    assert listing.json()["total"] == 1
+
+    detail = await client.get(f"{API}/spell_tags/{spell_tag_id}", headers=headers)
+    assert detail.status_code == 200
+
+    updated = await client.patch(
+        f"{API}/spell_tags/{spell_tag_id}",
+        headers=headers,
+        json={"name": "Abjuration", "description": "Updated **markdown**"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "Abjuration"
+    assert updated.json()["description"] == "Updated **markdown**"
+
+    deleted = await client.delete(
+        f"{API}/spell_tags/{spell_tag_id}", headers=headers
+    )
+    assert deleted.status_code == 204

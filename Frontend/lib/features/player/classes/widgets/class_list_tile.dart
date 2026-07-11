@@ -7,9 +7,11 @@ class ClassListTile extends StatelessWidget {
   const ClassListTile({
     super.key,
     required this.characterClass,
+    this.onTap,
   });
 
   final CharacterClass characterClass;
+  final VoidCallback? onTap;
 
   String? _sourceLabel() {
     final fileId = characterClass.fileId;
@@ -26,16 +28,19 @@ class ClassListTile extends StatelessWidget {
     return Material(
       color: scheme.surfaceContainerLow,
       borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Icon(
-              characterClass.caster
-                  ? Icons.auto_fix_high_outlined
-                  : Icons.shield_outlined,
-              color: scheme.primary,
-            ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(
+                characterClass.caster
+                    ? Icons.auto_fix_high_outlined
+                    : Icons.shield_outlined,
+                color: scheme.primary,
+              ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -61,7 +66,8 @@ class ClassListTile extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-          ],
+            ],
+          ),
         ),
       ),
     );

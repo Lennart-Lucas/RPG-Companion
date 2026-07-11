@@ -86,7 +86,13 @@ class _ClassesPageState extends State<ClassesPage> {
                   itemCount: classes.length,
                   separatorBuilder: (_, index) => const SizedBox(height: 8),
                   itemBuilder: (context, index) {
-                    return ClassListTile(characterClass: classes[index]);
+                    return ClassListTile(
+                      characterClass: classes[index],
+                      onTap: () => RpgNavigation.openClassDetail(
+                        context,
+                        classes[index],
+                      ),
+                    );
                   },
                 ),
           floatingActionButton: FloatingActionButton(

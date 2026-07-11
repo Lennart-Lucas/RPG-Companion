@@ -35,3 +35,6 @@ class User(Base):
     classes: Mapped[list["CharacterClass"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    spell_tags: Mapped[list["SpellTag"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )

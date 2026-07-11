@@ -14,9 +14,12 @@ import 'package:rpg_companion/features/dm_tools/resources/files/pages/file_creat
 import 'package:rpg_companion/features/dm_tools/resources/files/pages/file_detail_page.dart';
 import 'package:rpg_companion/features/dm_tools/resources/files/pages/file_edit_page.dart';
 import 'package:rpg_companion/features/dm_tools/resources/pages/resources_page.dart';
+import 'package:rpg_companion/features/player/classes/models/character_class.dart';
 import 'package:rpg_companion/features/player/classes/pages/class_create_page.dart';
+import 'package:rpg_companion/features/player/classes/pages/class_detail_page.dart';
 import 'package:rpg_companion/features/player/classes/pages/classes_page.dart';
 import 'package:rpg_companion/features/player/spells/pages/spells_page.dart';
+import 'package:rpg_companion/features/player/spell_tags/pages/spell_tag_create_page.dart';
 import 'package:rpg_companion/shell/app_shell.dart';
 
 Page<void> _noTransitionPage({
@@ -91,11 +94,24 @@ GoRouter buildRpgRouter({
                 path: 'new',
                 builder: (context, state) => const ClassCreatePage(),
               ),
+              GoRoute(
+                path: ':classId',
+                builder: (context, state) => ClassDetailPage(
+                  classId: state.pathParameters['classId']!,
+                  characterClass: state.extra as CharacterClass?,
+                ),
+              ),
             ],
           ),
           _shellBranch(
             path: RpgRoutes.playerSpells,
             child: const SpellsPage(),
+            nestedRoutes: [
+              GoRoute(
+                path: 'spell-tags/new',
+                builder: (context, state) => const SpellTagCreatePage(),
+              ),
+            ],
           ),
           _shellBranch(
             path: RpgRoutes.dmToolsResources,
@@ -233,5 +249,19 @@ abstract final class RpgNavigation {
 
   static Future<void> openClassCreate(BuildContext context) {
     return context.push(RpgRoutes.classCreate);
+  }
+
+  static Future<void> openClassDetail(
+    BuildContext context,
+    CharacterClass characterClass,
+  ) {
+    return context.push(
+      RpgRoutes.classDetail(characterClass.id),
+      extra: characterClass,
+    );
+  }
+
+  static Future<void> openSpellTagCreate(BuildContext context) {
+    return context.push(RpgRoutes.spellTagCreate);
   }
 }
