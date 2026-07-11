@@ -26,3 +26,9 @@ class User(Base):
     refresh_tokens: Mapped[list["RefreshToken"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
+    authors: Mapped[list["Author"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    files: Mapped[list["ResourceFile"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )

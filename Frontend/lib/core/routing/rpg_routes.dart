@@ -5,6 +5,19 @@ abstract final class RpgRoutes {
 
   static const dmToolsResources = '/dm-tools/resources';
 
+  static const authorCreate = '$dmToolsResources/authors/new';
+  static const fileCreate = '$dmToolsResources/files/new';
+
+  static String authorDetail(String authorId) =>
+      '$dmToolsResources/authors/$authorId';
+
+  static String authorEdit(String authorId) =>
+      '$dmToolsResources/authors/$authorId/edit';
+
+  static String fileDetail(String fileId) => '$dmToolsResources/files/$fileId';
+
+  static String fileEdit(String fileId) => '$dmToolsResources/files/$fileId/edit';
+
   static const shellBranchResources = 0;
 
   static const shellPaths = [

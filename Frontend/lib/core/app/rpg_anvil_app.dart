@@ -5,6 +5,8 @@ import 'package:rpg_companion/core/auth/rpg_auth_token_provider.dart';
 import 'package:rpg_companion/core/auth/shared_preferences_token_storage.dart';
 import 'package:rpg_companion/core/config/app_config.dart';
 import 'package:rpg_companion/core/http/rpg_http_client.dart';
+import 'package:rpg_companion/core/records/rpg_record_registry.dart';
+import 'package:rpg_companion/core/records/rpg_record_repository.dart';
 
 /// Bootstrap for RPG Companion auth and record layers.
 class RpgAnvilApp {
@@ -49,8 +51,8 @@ class RpgAnvilApp {
     final authBloc = AuthBloc(authRepository);
     final apiClient = ApiClientService(httpClient, tokenProvider);
     final recordCoordinator = RecordCoordinatorService(
-      RecordRegistry(),
-      HttpRecordRepositoryService(apiClient),
+      buildRpgRecordRegistry(),
+      RpgRecordRepository(apiClient),
     );
     final recordBloc = RecordBloc(recordCoordinator);
 

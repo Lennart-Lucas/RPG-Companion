@@ -5,6 +5,14 @@ import 'package:rpg_companion/core/routing/auth_bloc_listenable.dart';
 import 'package:rpg_companion/core/routing/rpg_routes.dart';
 import 'package:rpg_companion/features/auth/pages/login_page.dart';
 import 'package:rpg_companion/features/auth/pages/register_page.dart';
+import 'package:rpg_companion/features/dm_tools/resources/authors/models/author.dart';
+import 'package:rpg_companion/features/dm_tools/resources/authors/pages/author_create_page.dart';
+import 'package:rpg_companion/features/dm_tools/resources/authors/pages/author_detail_page.dart';
+import 'package:rpg_companion/features/dm_tools/resources/authors/pages/author_edit_page.dart';
+import 'package:rpg_companion/features/dm_tools/resources/files/models/resource_file.dart';
+import 'package:rpg_companion/features/dm_tools/resources/files/pages/file_create_page.dart';
+import 'package:rpg_companion/features/dm_tools/resources/files/pages/file_detail_page.dart';
+import 'package:rpg_companion/features/dm_tools/resources/files/pages/file_edit_page.dart';
 import 'package:rpg_companion/features/dm_tools/resources/pages/resources_page.dart';
 import 'package:rpg_companion/shell/app_shell.dart';
 
@@ -75,6 +83,50 @@ GoRouter buildRpgRouter({
           _shellBranch(
             path: RpgRoutes.dmToolsResources,
             child: const ResourcesPage(),
+            nestedRoutes: [
+              GoRoute(
+                path: 'authors/new',
+                builder: (context, state) => const AuthorCreatePage(),
+              ),
+              GoRoute(
+                path: 'authors/:authorId',
+                builder: (context, state) => AuthorDetailPage(
+                  authorId: state.pathParameters['authorId']!,
+                  author: state.extra as Author?,
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (context, state) => AuthorEditPage(
+                      authorId: state.pathParameters['authorId']!,
+                      author: state.extra as Author?,
+                    ),
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'files/new',
+                builder: (context, state) => FileCreatePage(
+                  authorId: state.uri.queryParameters['authorId'],
+                ),
+              ),
+              GoRoute(
+                path: 'files/:fileId',
+                builder: (context, state) => FileDetailPage(
+                  fileId: state.pathParameters['fileId']!,
+                  file: state.extra as ResourceFile?,
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    builder: (context, state) => FileEditPage(
+                      fileId: state.pathParameters['fileId']!,
+                      file: state.extra as ResourceFile?,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -124,5 +176,41 @@ abstract final class RpgNavigation {
     final shell = StatefulNavigationShell.maybeOf(context);
     shell?.goBranch(branch);
     context.go(RpgRoutes.shellPathForMenuKey(menuKey));
+  }
+
+  static Future<void> openAuthorCreate(BuildContext context) {
+    return context.push(RpgRoutes.authorCreate);
+  }
+
+  static Future<void> openAuthorDetail(BuildContext context, Author author) {
+    return context.push(RpgRoutes.authorDetail(author.id), extra: author);
+  }
+
+  static Future<void> openAuthorEdit(BuildContext context, Author author) {
+    return context.push(RpgRoutes.authorEdit(author.id), extra: author);
+  }
+
+  static Future<void> openFileCreate(
+    BuildContext context, {
+    String? authorId,
+  }) {
+    final uri = authorId == null || authorId.isEmpty
+        ? RpgRoutes.fileCreate
+        : '${RpgRoutes.fileCreate}?authorId=$authorId';
+    return context.push(uri);
+  }
+
+  static Future<void> openFileDetail(
+    BuildContext context,
+    ResourceFile file,
+  ) {
+    return context.push(RpgRoutes.fileDetail(file.id), extra: file);
+  }
+
+  static Future<void> openFileEdit(
+    BuildContext context,
+    ResourceFile file,
+  ) {
+    return context.push(RpgRoutes.fileEdit(file.id), extra: file);
   }
 }
