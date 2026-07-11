@@ -1,5 +1,13 @@
 # Copy to .deploy.local and fill in your values. Never commit .deploy.local.
 DEPLOY_HOST=203.0.113.10
-DEPLOY_PASSWORD=your-ssh-password
 DEPLOY_USER=root
 DEPLOY_REPO_PATH=~/RPG-Companion
+
+# Recommended: SSH private key (servers often disable password auth)
+DEPLOY_SSH_KEY_PATH=C:\Users\you\.ssh\id_ed25519
+
+# Optional: password auth (only if the server allows it)
+# DEPLOY_PASSWORD=your-ssh-password
+
+# Optional: pin server host key for plink batch mode (from first connect prompt)
+# DEPLOY_HOST_KEY_FINGERPRINT=SHA256:V8tbQfwVoDhRfeVbtuFND2zA7sAirjbSlPLfoYPLwXk

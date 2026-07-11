@@ -33,10 +33,12 @@ Deploy from your Windows machine to a Linux host with Docker. Credentials stay l
 ```powershell
 cd Backend
 Copy-Item .deploy.local.example .deploy.local
-notepad .deploy.local   # set DEPLOY_HOST and DEPLOY_PASSWORD
+notepad .deploy.local   # set DEPLOY_HOST and DEPLOY_SSH_KEY_PATH
 ```
 
-Requires **PuTTY `plink`** in PATH, or **WSL** with `sshpass` installed.
+Most VPS hosts only accept **SSH key** auth. Point `DEPLOY_SSH_KEY_PATH` at your private key (the same one you use for Companion, e.g. `C:\Users\you\.ssh\id_ed25519`). Password auth is optional and only works if the server allows it.
+
+Requires **OpenSSH** (`ssh` on PATH), **PuTTY plink**, or **Posh-SSH**. OpenSSH is preferred for key auth on Windows 10+.
 
 ### One-time server setup
 
@@ -61,7 +63,7 @@ Or pass credentials for this session only (not saved to disk):
 
 ```powershell
 $env:DEPLOY_HOST = 'YOUR_IP'
-$env:DEPLOY_PASSWORD = 'YOUR_PASSWORD'
+$env:DEPLOY_SSH_KEY_PATH = 'C:\Users\you\.ssh\id_ed25519'
 .\scripts\deploy-remote.ps1
 ```
 
