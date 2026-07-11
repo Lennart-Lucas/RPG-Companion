@@ -20,6 +20,7 @@ htmlcov/
 .env
 .env.dev
 .env.prod
+.deploy.local
 
 # IDE
 .idea/
