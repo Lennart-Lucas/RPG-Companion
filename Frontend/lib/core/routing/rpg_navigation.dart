@@ -18,6 +18,9 @@ import 'package:rpg_companion/features/player/classes/models/character_class.dar
 import 'package:rpg_companion/features/player/classes/pages/class_create_page.dart';
 import 'package:rpg_companion/features/player/classes/pages/class_detail_page.dart';
 import 'package:rpg_companion/features/player/classes/pages/classes_page.dart';
+import 'package:rpg_companion/features/player/spells/models/spell.dart';
+import 'package:rpg_companion/features/player/spells/pages/spell_create_page.dart';
+import 'package:rpg_companion/features/player/spells/pages/spell_detail_page.dart';
 import 'package:rpg_companion/features/player/spells/pages/spells_page.dart';
 import 'package:rpg_companion/features/player/spell_tags/pages/spell_tag_create_page.dart';
 import 'package:rpg_companion/shell/app_shell.dart';
@@ -108,8 +111,19 @@ GoRouter buildRpgRouter({
             child: const SpellsPage(),
             nestedRoutes: [
               GoRoute(
+                path: 'new',
+                builder: (context, state) => const SpellCreatePage(),
+              ),
+              GoRoute(
                 path: 'spell-tags/new',
                 builder: (context, state) => const SpellTagCreatePage(),
+              ),
+              GoRoute(
+                path: ':spellId',
+                builder: (context, state) => SpellDetailPage(
+                  spellId: state.pathParameters['spellId']!,
+                  spell: state.extra as Spell?,
+                ),
               ),
             ],
           ),
@@ -263,5 +277,16 @@ abstract final class RpgNavigation {
 
   static Future<void> openSpellTagCreate(BuildContext context) {
     return context.push(RpgRoutes.spellTagCreate);
+  }
+
+  static Future<void> openSpellCreate(BuildContext context) {
+    return context.push(RpgRoutes.spellCreate);
+  }
+
+  static Future<void> openSpellDetail(BuildContext context, Spell spell) {
+    return context.push(
+      RpgRoutes.spellDetail(spell.id),
+      extra: spell,
+    );
   }
 }

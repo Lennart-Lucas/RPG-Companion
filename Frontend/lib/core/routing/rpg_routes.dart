@@ -13,6 +13,10 @@ abstract final class RpgRoutes {
 
   static const spellTagCreate = '$playerSpells/spell-tags/new';
 
+  static const spellCreate = '$playerSpells/new';
+
+  static String spellDetail(String spellId) => '$playerSpells/$spellId';
+
   static const authorCreate = '$dmToolsResources/authors/new';
   static const fileCreate = '$dmToolsResources/files/new';
 

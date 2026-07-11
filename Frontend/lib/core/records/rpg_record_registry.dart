@@ -3,6 +3,7 @@ import 'package:rpg_companion/core/records/rpg_record.dart';
 import 'package:rpg_companion/features/dm_tools/resources/authors/models/author.dart';
 import 'package:rpg_companion/features/dm_tools/resources/files/models/resource_file.dart';
 import 'package:rpg_companion/features/player/classes/models/character_class.dart';
+import 'package:rpg_companion/features/player/spells/models/spell.dart';
 import 'package:rpg_companion/features/player/spell_tags/models/spell_tag.dart';
 
 const _listTtl = Duration(minutes: 5);
@@ -28,6 +29,7 @@ RecordRegistry buildRpgRecordRegistry() {
   register('files', ResourceFile.fromJson);
   register('classes', CharacterClass.fromJson);
   register('spell_tags', SpellTag.fromJson);
+  register('spells', Spell.fromJson);
 
   return registry;
 }

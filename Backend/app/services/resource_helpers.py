@@ -74,3 +74,53 @@ async def assert_file_owned(
 ) -> None:
     if file_id is not None:
         await get_file_owned(session, file_id, user_id)
+
+
+async def get_caster_class_owned(
+    session: AsyncSession, class_id: int, user_id: int
+):
+    from app.models.character_class import CharacterClass
+
+    result = await session.execute(
+        select(CharacterClass).where(
+            CharacterClass.id == class_id,
+            CharacterClass.user_id == user_id,
+            CharacterClass.deleted_at.is_(None),
+        )
+    )
+    character_class = result.scalar_one_or_none()
+    if character_class is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Class not found",
+        )
+    if not character_class.caster:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Class '{character_class.name}' is not a spell caster",
+        )
+    return character_class
+
+
+async def assert_spell_tags_owned(
+    session: AsyncSession, tag_ids: list[int], user_id: int
+) -> None:
+    if not tag_ids:
+        return
+
+    from app.models.spell_tag import SpellTag
+
+    result = await session.execute(
+        select(SpellTag.id).where(
+            SpellTag.id.in_(tag_ids),
+            SpellTag.user_id == user_id,
+            SpellTag.deleted_at.is_(None),
+        )
+    )
+    found = set(result.scalars().all())
+    missing = set(tag_ids) - found
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Spell tag not found",
+        )

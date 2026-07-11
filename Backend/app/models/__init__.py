@@ -5,6 +5,7 @@ from app.models.base import Base
 from app.models.character_class import CharacterClass
 from app.models.file import ResourceFile
 from app.models.refresh_token import RefreshToken
+from app.models.spell import Spell
 from app.models.spell_tag import SpellTag
 from app.models.user import User
 
@@ -15,5 +16,6 @@ __all__ = [
     "RefreshToken",
     "ResourceFile",
     "SpellTag",
+    "Spell",
     "User",
 ]

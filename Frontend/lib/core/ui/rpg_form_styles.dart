@@ -25,4 +25,24 @@ class RpgFormStyles {
       isDense: base.isDense,
     );
   }
+
+  static Color fieldFillColor(BuildContext context) {
+    final theme = Theme.of(context);
+    return theme.inputDecorationTheme.fillColor ??
+        theme.colorScheme.surface;
+  }
+
+  static Color submitButtonColor(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = theme.elevatedButtonTheme.style;
+    return style?.backgroundColor?.resolve(const {}) ??
+        theme.colorScheme.primary;
+  }
+
+  static Color submitButtonForegroundColor(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = theme.elevatedButtonTheme.style;
+    return style?.foregroundColor?.resolve(const {}) ??
+        theme.colorScheme.onPrimary;
+  }
 }

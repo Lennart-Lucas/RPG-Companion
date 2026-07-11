@@ -11,7 +11,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.api.routes import auth, authors, classes, files, health, spell_tags
+from app.api.routes import auth, authors, classes, files, health, spell_tags, spells
 from app.config import settings
 from app.database import dispose_engine
 from app.middleware.security_headers import SecurityHeadersMiddleware
@@ -98,6 +98,7 @@ def create_app() -> FastAPI:
     app.include_router(files.router, prefix=settings.api_prefix)
     app.include_router(classes.router, prefix=settings.api_prefix)
     app.include_router(spell_tags.router, prefix=settings.api_prefix)
+    app.include_router(spells.router, prefix=settings.api_prefix)
 
     return app
 

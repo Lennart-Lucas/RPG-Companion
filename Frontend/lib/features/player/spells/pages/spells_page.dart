@@ -1,13 +1,12 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:rpg_companion/core/markdown/fields/markdown_wiki_field.dart';
-import 'package:rpg_companion/core/markdown/markdown_wiki_display.dart';
+import 'package:rpg_companion/core/records/rpg_record_repository.dart';
+import 'package:rpg_companion/core/routing/rpg_navigation.dart';
+import 'package:rpg_companion/features/dm_tools/resources/services/resource_record_resolver.dart';
+import 'package:rpg_companion/features/player/services/player_record_resolver.dart';
+import 'package:rpg_companion/features/player/spells/widgets/spell_list_tile.dart';
 import 'package:rpg_companion/features/player/spells/widgets/spells_expandable_fab.dart';
-
-abstract final class _SpellNotesSandboxKeys {
-  static const notes = 'spell_notes';
-}
 
 class SpellsPage extends StatefulWidget {
   const SpellsPage({super.key});
@@ -17,73 +16,91 @@ class SpellsPage extends StatefulWidget {
 }
 
 class _SpellsPageState extends State<SpellsPage> {
-  String _displaySource = '';
+  int _refreshNonce = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fetchSpells());
+  }
+
+  void _fetchSpells() {
+    context.read<RecordBloc>().remoteCoordinator?.refreshQueryRecords(
+          spellsListQuery,
+        );
+  }
+
+  void _onFabChanged() {
+    if (!mounted) return;
+    setState(() => _refreshNonce++);
+    _fetchSpells();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => AnvilFormBloc(
-        config: AnvilFormConfig(
-          formKey: 'spell_notes_sandbox',
-          steps: const ['main'],
-          pages: {
-            'main': AnvilFormPage(
-              builder: (context, state) => const SizedBox.shrink(),
-            ),
-          },
-          initialValues: const {
-            _SpellNotesSandboxKeys.notes: '',
-          },
-          submitHandler: CallbackSubmitHandler(
-            onSubmit: (_) async => const FormSubmitResult.success(),
+    return BlocBuilder<RecordBloc, RecordState>(
+      buildWhen: (previous, current) {
+        if (_refreshNonce > 0) return true;
+        return queryRecordsDisplayChanged(
+          previous: previous,
+          current: current,
+          query: spellsListQuery,
+          recordType: 'spells',
+        );
+      },
+      builder: (context, state) {
+        final spells = resolveSpells(state, spellsListQuery);
+
+        return Scaffold(
+          body: spells.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          IconRegistry.instance
+                                  .getIconData('Wand Magic Sparkles') ??
+                              Icons.auto_fix_high_outlined,
+                          size: 64,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No spells yet',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Add a spell or spell tag using the button below.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                  itemCount: spells.length,
+                  separatorBuilder: (_, index) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    return SpellListTile(
+                      spell: spells[index],
+                      onTap: () => RpgNavigation.openSpellDetail(
+                        context,
+                        spells[index],
+                      ),
+                    );
+                  },
+                ),
+          floatingActionButton: SpellsExpandableFab(
+            onChanged: _onFabChanged,
           ),
-        ),
-      )..add(const AnvilFormInitialized()),
-      child: Scaffold(
-        floatingActionButton: const SpellsExpandableFab(),
-        body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-          children: [
-            Text(
-              'Spells',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Markdown + wiki-link sandbox. Type [[ to link authors, files, or classes.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 16),
-            const RpgMarkdownWikiField(
-              fieldKey: _SpellNotesSandboxKeys.notes,
-              label: 'Spell notes (demo)',
-              minLines: 8,
-            ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: () {
-                final values =
-                    context.read<AnvilFormBloc>().state.values;
-                setState(() {
-                  _displaySource =
-                      values[_SpellNotesSandboxKeys.notes] as String? ?? '';
-                });
-              },
-              icon: const Icon(Icons.visibility_outlined),
-              label: const Text('Update display preview'),
-            ),
-            if (_displaySource.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                'Display component',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              MarkdownWikiDisplay(source: _displaySource),
-            ],
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

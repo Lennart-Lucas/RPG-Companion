@@ -163,6 +163,7 @@ async def test_class_crud_with_file_source(client: AsyncClient):
     assert deleted.status_code == 204
 
 
+@pytest.mark.asyncio
 async def test_spell_tag_crud(client: AsyncClient):
     token = await _register_and_login(client)
     headers = {"Authorization": f"Bearer {token}"}
@@ -200,4 +201,118 @@ async def test_spell_tag_crud(client: AsyncClient):
     deleted = await client.delete(
         f"{API}/spell_tags/{spell_tag_id}", headers=headers
     )
+    assert deleted.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_spell_crud(client: AsyncClient):
+    token = await _register_and_login(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    resource_file = await client.post(
+        f"{API}/files",
+        headers=headers,
+        json={
+            "name": "Spell Source",
+            "address": "https://example.com/spells.pdf",
+        },
+    )
+    assert resource_file.status_code == 201
+    file_id = resource_file.json()["id"]
+
+    wizard = await client.post(
+        f"{API}/classes",
+        headers=headers,
+        json={"name": "Wizard", "caster": True},
+    )
+    assert wizard.status_code == 201
+    wizard_id = wizard.json()["id"]
+
+    fighter = await client.post(
+        f"{API}/classes",
+        headers=headers,
+        json={"name": "Fighter", "caster": False},
+    )
+    assert fighter.status_code == 201
+    fighter_id = fighter.json()["id"]
+
+    tag = await client.post(
+        f"{API}/spell_tags",
+        headers=headers,
+        json={"name": "Damage"},
+    )
+    assert tag.status_code == 201
+    tag_id = tag.json()["id"]
+
+    invalid_class = await client.post(
+        f"{API}/spells",
+        headers=headers,
+        json={
+            "name": "Invalid Spell",
+            "level": "1st",
+            "school": "evocation",
+            "casting_time": 1,
+            "casting_type": "action",
+            "duration": "instantaneous",
+            "range": "120_feet",
+            "class_ids": [fighter_id],
+        },
+    )
+    assert invalid_class.status_code == 422
+
+    create = await client.post(
+        f"{API}/spells",
+        headers=headers,
+        json={
+            "name": "Fireball",
+            "file_id": file_id,
+            "level": "3rd",
+            "school": "evocation",
+            "casting_time": 1,
+            "casting_type": "action",
+            "duration": "instantaneous",
+            "concentration": False,
+            "range": "120_feet",
+            "component_verbal": True,
+            "component_somatic": True,
+            "component_material": True,
+            "materials": "A tiny ball of bat guano and sulfur",
+            "description": "A bright streak flashes from your pointing finger.",
+            "higher_levels": "The damage increases by 1d6 for each slot above 3rd.",
+            "class_ids": [wizard_id],
+            "spell_tag_ids": [tag_id],
+        },
+    )
+    assert create.status_code == 201
+    spell = create.json()
+    assert spell["name"] == "Fireball"
+    assert spell["file_id"] == file_id
+    assert spell["class_ids"] == [wizard_id]
+    assert spell["spell_tag_ids"] == [tag_id]
+    spell_id = spell["id"]
+
+    listing = await client.get(f"{API}/spells", headers=headers)
+    assert listing.status_code == 200
+    assert listing.json()["total"] == 1
+
+    detail = await client.get(f"{API}/spells/{spell_id}", headers=headers)
+    assert detail.status_code == 200
+
+    reaction_invalid = await client.post(
+        f"{API}/spells",
+        headers=headers,
+        json={
+            "name": "Shield",
+            "level": "1st",
+            "school": "abjuration",
+            "casting_time": 1,
+            "casting_type": "reaction",
+            "duration": "1_round",
+            "range": "self",
+            "class_ids": [wizard_id],
+        },
+    )
+    assert reaction_invalid.status_code == 422
+
+    deleted = await client.delete(f"{API}/spells/{spell_id}", headers=headers)
     assert deleted.status_code == 204
