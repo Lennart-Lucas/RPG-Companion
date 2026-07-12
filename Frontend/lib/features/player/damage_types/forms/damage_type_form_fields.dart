@@ -11,23 +11,28 @@ class DamageTypeFormFields extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fieldDecoration = RpgFormStyles.fieldDecoration(context);
-    final iconExtent = AnvilIconColorPickerField.singleLineInputExtent(
-      context,
-      fieldDecoration,
-    );
 
     return TransparentFormPanel(
       child: AnvilFormSection(
         title: 'Details',
-        subtitle: 'Name, icon, color, and markdown description',
+        subtitle: 'Icon, name, color, and markdown description',
         padding: EdgeInsets.zero,
         spacing: RpgFormStyles.fieldSpacing,
         headerMarginTop: 16,
         headerMarginBottom: RpgFormStyles.sectionHeaderMarginBottom,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              AnvilIconColorPickerField(
+                iconFieldKey: DamageTypeFormKeys.icon,
+                colorFieldKey: DamageTypeFormKeys.color,
+                compactSquare: true,
+                compactSquareSize: 44,
+                compactSquareTopInset: 0,
+                decoration: fieldDecoration,
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: AnvilTextField(
                   fieldKey: DamageTypeFormKeys.name,
@@ -36,14 +41,6 @@ class DamageTypeFormFields extends StatelessWidget {
                   placeholder: 'Damage type name',
                   decoration: fieldDecoration,
                 ),
-              ),
-              const SizedBox(width: 12),
-              AnvilIconColorPickerField(
-                iconFieldKey: DamageTypeFormKeys.icon,
-                colorFieldKey: DamageTypeFormKeys.color,
-                compactSquare: true,
-                decoration: fieldDecoration,
-                buttonSize: iconExtent - 16,
               ),
             ],
           ),
