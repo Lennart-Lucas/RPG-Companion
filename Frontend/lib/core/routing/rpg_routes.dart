@@ -18,11 +18,15 @@ abstract final class RpgRoutes {
 
   static String classDetail(String classId) => '$playerClasses/$classId';
 
+  static String classEdit(String classId) => '$playerClasses/$classId/edit';
+
   static const spellTagCreate = '$referenceSpellTags/new';
 
   static const spellCreate = '$playerSpells/new';
 
   static String spellDetail(String spellId) => '$playerSpells/$spellId';
+
+  static String spellEdit(String spellId) => '$playerSpells/$spellId/edit';
 
   static const authorCreate = '$dmToolsResources/authors/new';
   static const fileCreate = '$dmToolsResources/files/new';
@@ -102,4 +106,15 @@ abstract final class RpgRoutes {
 
   static bool isAuthPath(String location) =>
       location == login || location == register;
+
+  /// Nested routes under a shell branch (detail/edit), excluding create (`/new`).
+  static bool hidesSectionFooter(String location) {
+    if (location.endsWith('/new')) return false;
+    for (final base in shellPaths) {
+      if (location.startsWith('$base/') && location.length > base.length + 1) {
+        return true;
+      }
+    }
+    return false;
+  }
 }

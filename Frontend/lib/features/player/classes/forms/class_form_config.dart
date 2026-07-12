@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:rpg_companion/features/player/classes/forms/class_form_fields.dart';
 import 'package:rpg_companion/features/player/classes/models/character_class.dart';
 
-AnvilFormConfig buildClassFormConfig(RecordBloc recordBloc) {
+AnvilFormConfig buildClassFormConfig(
+  RecordBloc recordBloc, {
+  RecordId? recordId,
+  CharacterClass? preloadedClass,
+}) {
+  final isEdit = recordId != null;
   return AnvilFormConfig(
-    formKey: 'create_class',
+    formKey: isEdit ? 'edit_class' : 'create_class',
     steps: const ['main'],
     pages: {
       'main': AnvilFormPage(
@@ -20,11 +25,13 @@ AnvilFormConfig buildClassFormConfig(RecordBloc recordBloc) {
         ),
       ),
     },
-    initialValues: const {
-      CharacterClassFormKeys.name: '',
-      CharacterClassFormKeys.fileId: '',
-      CharacterClassFormKeys.caster: false,
-    },
+    initialValues: isEdit
+        ? const {}
+        : const {
+            CharacterClassFormKeys.name: '',
+            CharacterClassFormKeys.fileId: '',
+            CharacterClassFormKeys.caster: false,
+          },
     validationRules: [
       AnvilFormValidationRule(
         fieldKey: CharacterClassFormKeys.name,
@@ -39,7 +46,11 @@ AnvilFormConfig buildClassFormConfig(RecordBloc recordBloc) {
     submitHandler: RecordSubmitHandler(
       recordBloc: recordBloc,
       recordType: 'classes',
-      toRecord: (values) => CharacterClass.fromFormValues(values),
+      recordId: recordId,
+      toRecord: (values) => CharacterClass.fromFormValues(
+        values,
+        id: recordId,
+      ),
       fromRecord: (record) => (record as CharacterClass).toFormValues(),
     ),
   );

@@ -1,13 +1,13 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:rpg_companion/core/records/rpg_record_repository.dart';
 import 'package:rpg_companion/core/routing/rpg_navigation.dart';
 import 'package:rpg_companion/features/dm_tools/resources/authors/models/author.dart';
 import 'package:rpg_companion/features/dm_tools/resources/files/models/resource_file.dart';
 import 'package:rpg_companion/features/dm_tools/resources/files/widgets/file_list_tile.dart';
 import 'package:rpg_companion/features/dm_tools/resources/services/resource_record_resolver.dart';
+import 'package:rpg_companion/shell/rpg_shell_app_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AuthorDetailPage extends StatefulWidget {
@@ -24,14 +24,23 @@ class AuthorDetailPage extends StatefulWidget {
   State<AuthorDetailPage> createState() => _AuthorDetailPageState();
 }
 
-class _AuthorDetailPageState extends State<AuthorDetailPage> {
+class _AuthorDetailPageState extends State<AuthorDetailPage>
+    with RpgShellRecordDetailPage {
   bool _deleting = false;
+
+  static final _authorIcon =
+      IconRegistry.instance.getIconData('Book') ?? Icons.menu_book_outlined;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      syncShellDetailAppBar(
+        title: widget.author?.name ?? 'Author',
+        actions:
+            widget.author == null ? null : _actionsFor(widget.author!),
+      );
       final bloc = context.read<RecordBloc>();
       bloc.add(
         GetRecordRequested(recordType: 'authors', recordId: widget.authorId),
@@ -40,6 +49,39 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
         filesForAuthorQuery(widget.authorId),
       );
     });
+  }
+
+  @override
+  void dispose() {
+    disposeShellDetailAppBar();
+    super.dispose();
+  }
+
+  List<Widget> _actionsFor(Author author) {
+    return RpgShellAppBar.editDeleteActions(
+      onEdit: () => RpgNavigation.openAuthorEdit(context, author),
+      onDelete: () => _deleteAuthor(author),
+      deleting: _deleting,
+    );
+  }
+
+  Future<void> _deleteAuthor(Author author) async {
+    final confirmed = await RpgShellAppBar.confirmDelete(
+      context,
+      title: 'Delete author?',
+      message: 'This will permanently delete "${author.name}".',
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _deleting = true);
+    context.read<RecordBloc>().add(
+          DeleteRecordRequested(
+            recordType: 'authors',
+            recordId: widget.authorId,
+          ),
+        );
+    if (!mounted) return;
+    RpgShellAppBar.popDetail(context);
   }
 
   Author? _authorFromState(RecordState state) {
@@ -53,41 +95,6 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
 
   List<ResourceFile> _filesFromState(RecordState state) {
     return resolveResourceFiles(state, filesForAuthorQuery(widget.authorId));
-  }
-
-  Future<void> _openEdit(Author author) {
-    return RpgNavigation.openAuthorEdit(context, author);
-  }
-
-  Future<void> _deleteAuthor() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete author?'),
-        content: const Text('This will remove the author from your list.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    setState(() => _deleting = true);
-    context.read<RecordBloc>().add(
-          DeleteRecordRequested(
-            recordType: 'authors',
-            recordId: widget.authorId,
-          ),
-        );
-    if (!mounted) return;
-    context.pop();
   }
 
   Future<void> _launchUrl(String url) async {
@@ -110,71 +117,57 @@ class _AuthorDetailPageState extends State<AuthorDetailPage> {
               current.snapshot.records[widget.authorId]?.version,
       builder: (context, state) {
         final author = _authorFromState(state);
+        if (author != null) {
+          syncShellDetailAppBar(
+            title: author.name,
+            actions: _actionsFor(author),
+          );
+        }
+
         final files = _filesFromState(state);
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(author?.name ?? 'Author'),
-            actions: [
-              if (author != null)
-                IconButton(
-                  tooltip: 'Edit',
-                  onPressed: () => _openEdit(author),
-                  icon: const Icon(Icons.edit_outlined),
+        return RpgDetailPageBody(
+          icon: _authorIcon,
+          loading: author == null,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (author!.links.isNotEmpty) ...[
+                Text(
+                  'Links',
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-              IconButton(
-                tooltip: 'Delete',
-                onPressed: _deleting ? null : _deleteAuthor,
-                icon: const Icon(Icons.delete_outline),
+                const SizedBox(height: 8),
+                ...author.links.map(
+                  (link) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.link),
+                    title: Text(AuthorSourceOptions.labelFor(link.source)),
+                    subtitle: Text(link.url),
+                    onTap: () => _launchUrl(link.url),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+              Text(
+                'Files',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
+              const SizedBox(height: 8),
+              if (files.isEmpty)
+                Text(
+                  'No files linked to this author yet.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                )
+              else
+                ...files.map(
+                  (file) => FileListTile(
+                    file: file,
+                    onTap: () => RpgNavigation.openFileDetail(context, file),
+                  ),
+                ),
             ],
           ),
-          body: author == null
-              ? const Center(child: CircularProgressIndicator())
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    Text(
-                      author.name,
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    if (author.links.isNotEmpty) ...[
-                      const SizedBox(height: 24),
-                      Text(
-                        'Links',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      ...author.links.map(
-                        (link) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.link),
-                          title: Text(AuthorSourceOptions.labelFor(link.source)),
-                          subtitle: Text(link.url),
-                          onTap: () => _launchUrl(link.url),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    Text(
-                      'Files',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    if (files.isEmpty)
-                      Text(
-                        'No files linked to this author yet.',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      )
-                    else
-                      ...files.map(
-                        (file) => FileListTile(
-                          file: file,
-                          onTap: () => RpgNavigation.openFileDetail(context, file),
-                        ),
-                      ),
-                  ],
-                ),
         );
       },
     );

@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:rpg_companion/features/player/spells/forms/spell_form_fields.dart';
 import 'package:rpg_companion/features/player/spells/models/spell.dart';
 
-AnvilFormConfig buildSpellFormConfig(RecordBloc recordBloc) {
+AnvilFormConfig buildSpellFormConfig(
+  RecordBloc recordBloc, {
+  RecordId? recordId,
+  Spell? preloadedSpell,
+}) {
+  final isEdit = recordId != null;
   return AnvilFormConfig(
-    formKey: 'create_spell',
+    formKey: isEdit ? 'edit_spell' : 'create_spell',
     steps: const ['main'],
     pages: {
       'main': AnvilFormPage(
@@ -20,7 +25,9 @@ AnvilFormConfig buildSpellFormConfig(RecordBloc recordBloc) {
         ),
       ),
     },
-    initialValues: {
+    initialValues: isEdit
+        ? const {}
+        : {
       SpellFormKeys.name: '',
       SpellFormKeys.fileId: '',
       SpellFormKeys.level: SpellLevels.values.first,
@@ -91,7 +98,11 @@ AnvilFormConfig buildSpellFormConfig(RecordBloc recordBloc) {
     submitHandler: RecordSubmitHandler(
       recordBloc: recordBloc,
       recordType: 'spells',
-      toRecord: (values) => Spell.fromFormValues(values),
+      recordId: recordId,
+      toRecord: (values) => Spell.fromFormValues(
+        values,
+        id: recordId,
+      ),
       fromRecord: (record) => (record as Spell).toFormValues(),
     ),
   );

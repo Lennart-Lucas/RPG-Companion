@@ -12,6 +12,7 @@ import 'package:rpg_companion/features/player/spells/widgets/spell_card_builder.
 import 'package:rpg_companion/features/player/spells/widgets/spell_card_data.dart';
 import 'package:rpg_companion/features/player/spells/widgets/spell_card_pages_wrap.dart';
 import 'package:rpg_companion/features/player/spell_tags/models/spell_tag.dart';
+import 'package:rpg_companion/shell/rpg_shell_app_bar.dart';
 
 class SpellDetailPage extends StatefulWidget {
   const SpellDetailPage({
@@ -27,16 +28,60 @@ class SpellDetailPage extends StatefulWidget {
   State<SpellDetailPage> createState() => _SpellDetailPageState();
 }
 
-class _SpellDetailPageState extends State<SpellDetailPage> {
+class _SpellDetailPageState extends State<SpellDetailPage>
+    with RpgShellRecordDetailPage {
+  bool _deleting = false;
+
+  static final _spellIcon =
+      IconRegistry.instance.getIconData('Wand Magic Sparkles') ??
+          Icons.auto_fix_high_outlined;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      syncShellDetailAppBar(
+        title: widget.spell?.name ?? 'Spell',
+        actions: widget.spell == null ? null : _actionsFor(widget.spell!),
+      );
       context.read<RecordBloc>().add(
             GetRecordRequested(recordType: 'spells', recordId: widget.spellId),
           );
     });
+  }
+
+  @override
+  void dispose() {
+    disposeShellDetailAppBar();
+    super.dispose();
+  }
+
+  List<Widget> _actionsFor(Spell spell) {
+    return RpgShellAppBar.editDeleteActions(
+      onEdit: () => RpgNavigation.openSpellEdit(context, spell),
+      onDelete: () => _deleteSpell(spell),
+      deleting: _deleting,
+    );
+  }
+
+  Future<void> _deleteSpell(Spell spell) async {
+    final confirmed = await RpgShellAppBar.confirmDelete(
+      context,
+      title: 'Delete spell?',
+      message: 'This will permanently delete "${spell.name}".',
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _deleting = true);
+    context.read<RecordBloc>().add(
+          DeleteRecordRequested(
+            recordType: 'spells',
+            recordId: widget.spellId,
+          ),
+        );
+    if (!mounted) return;
+    RpgShellAppBar.popDetail(context);
   }
 
   bool _isDesktopPlatform() {
@@ -84,9 +129,18 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
     return BlocBuilder<RecordBloc, RecordState>(
       builder: (context, state) {
         final spell = _spellFromState(state);
+        if (spell != null) {
+          syncShellDetailAppBar(
+            title: spell.name,
+            actions: _actionsFor(spell),
+          );
+        }
+
         if (spell == null) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          return RpgDetailPageBody(
+            icon: _spellIcon,
+            loading: true,
+            child: const SizedBox.shrink(),
           );
         }
 
@@ -110,9 +164,9 @@ class _SpellDetailPageState extends State<SpellDetailPage> {
           cardScale: desktopScale,
         );
 
-        return Scaffold(
-          appBar: AppBar(title: Text(spell.name)),
-          body: ListView(
+        return RpgDetailPageBody(
+          icon: _spellIcon,
+          child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               SpellCardPagesWrap(
