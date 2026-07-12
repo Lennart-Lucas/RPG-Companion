@@ -3,10 +3,13 @@ import 'dart:async';
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:rpg_companion/core/markdown/damage_type_auto_link.dart';
 import 'package:rpg_companion/core/markdown/linkable_record_registry.dart';
 import 'package:rpg_companion/core/markdown/markdown_wiki_preview.dart';
 import 'package:rpg_companion/core/markdown/record_link_index.dart';
 import 'package:rpg_companion/core/ui/rpg_form_styles.dart';
+import 'package:rpg_companion/core/records/rpg_record_repository.dart';
+import 'package:rpg_companion/features/player/services/player_record_resolver.dart';
 
 /// Markdown editor with formatting toolbar, wiki-link autocomplete, and preview.
 class RpgMarkdownWikiField extends StatefulWidget {
@@ -20,6 +23,7 @@ class RpgMarkdownWikiField extends StatefulWidget {
     this.maxLines,
     this.placeholder = 'Start typing...',
     this.showPreview = true,
+    this.autoLinkDamageTypes = false,
     this.decoration,
     this.onChanged,
   });
@@ -32,6 +36,7 @@ class RpgMarkdownWikiField extends StatefulWidget {
   final int? maxLines;
   final String? placeholder;
   final bool showPreview;
+  final bool autoLinkDamageTypes;
   final InputDecoration? decoration;
   final ValueChanged<String>? onChanged;
 
@@ -280,6 +285,24 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
     _onChanged(newText);
   }
 
+  void _autoLinkDamageTypes() {
+    final bloc = context.read<RecordBloc>();
+    bloc.remoteCoordinator?.refreshQueryRecords(damageTypesListQuery);
+
+    final damageTypes = resolveDamageTypes(bloc.state, damageTypesListQuery);
+    if (damageTypes.isEmpty) return;
+
+    final linkedText = linkDamageTypeMentions(_controller.text, damageTypes);
+    if (linkedText == _controller.text) return;
+
+    _controller.value = TextEditingValue(
+      text: linkedText,
+      selection: TextSelection.collapsed(offset: linkedText.length),
+    );
+    _onChanged(linkedText);
+    _focusNode.requestFocus();
+  }
+
   @override
   Widget build(BuildContext context) {
     selectFieldError(widget.fieldKey);
@@ -496,6 +519,12 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
             tooltip: 'Numbered list',
             onPressed: () => _insertPrefix('1. '),
           ),
+          if (widget.autoLinkDamageTypes)
+            _ToolbarButton(
+              icon: Icons.link,
+              tooltip: 'Auto link',
+              onPressed: _autoLinkDamageTypes,
+            ),
         ],
       ),
     );

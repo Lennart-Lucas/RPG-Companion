@@ -152,6 +152,7 @@ class SpellFormFields extends StatelessWidget {
                 label: 'Description',
                 minLines: 6,
                 showPreview: false,
+                autoLinkDamageTypes: true,
                 decoration: fieldDecoration,
               ),
               RpgMarkdownWikiField(
@@ -159,6 +160,7 @@ class SpellFormFields extends StatelessWidget {
                 label: 'At higher levels',
                 minLines: 4,
                 showPreview: false,
+                autoLinkDamageTypes: true,
                 decoration: fieldDecoration,
               ),
             ],

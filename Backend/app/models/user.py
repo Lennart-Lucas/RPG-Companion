@@ -39,7 +39,7 @@ class User(Base):
         back_populates="user", cascade="all, delete-orphan"
     )
     damage_types: Mapped[list["DamageType"]] = relationship(
-        back_populates="user", cascade="all, delete-orphan"
+        back_populates="user", cascade="all, delete-orphan", lazy="noload"
     )
     spells: Mapped[list["Spell"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"

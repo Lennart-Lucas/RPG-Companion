@@ -3,8 +3,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.damage_type import DamageType
 from app.models.user import User
-from app.schemas.damage_type import DamageTypeCreate, DamageTypeUpdate
+from app.schemas.damage_type import (
+    DamageTypeCreate,
+    DamageTypeResponse,
+    DamageTypeUpdate,
+)
 from app.services.resource_helpers import apply_list_filters, clamp_pagination, soft_delete
+
+
+def damage_type_to_response(damage_type: DamageType) -> DamageTypeResponse:
+    return DamageTypeResponse(
+        id=damage_type.id,
+        name=damage_type.name,
+        description=damage_type.description,
+        icon=damage_type.icon,
+        color=damage_type.color,
+        created_at=damage_type.created_at,
+        updated_at=damage_type.updated_at,
+    )
+
+
+async def _reload_damage_type(session: AsyncSession, damage_type_id: int) -> DamageType:
+    result = await session.execute(
+        select(DamageType).where(DamageType.id == damage_type_id)
+    )
+    return result.scalar_one()
 
 
 async def get_damage_type(
@@ -40,7 +63,7 @@ async def create_damage_type(
     )
     session.add(damage_type)
     await session.flush()
-    return damage_type
+    return await _reload_damage_type(session, damage_type.id)
 
 
 async def list_damage_types(
@@ -74,7 +97,7 @@ async def update_damage_type(
     if "color" in fields_set:
         damage_type.color = data.color
     await session.flush()
-    return damage_type
+    return await _reload_damage_type(session, damage_type.id)
 
 
 async def delete_damage_type(

@@ -37,6 +37,12 @@ abstract final class LinkableRecordRegistry {
       typeLabel: 'Class',
       linkable: true,
     ),
+    LinkableRecordTypeConfig(
+      type: 'damage_types',
+      listQuery: damageTypesListQuery,
+      typeLabel: 'Damage type',
+      linkable: true,
+    ),
   ];
 
   static Iterable<LinkableRecordTypeConfig> get linkableConfigs =>

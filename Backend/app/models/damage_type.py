@@ -30,4 +30,4 @@ class DamageType(Base):
         DateTime(timezone=True), nullable=True, index=True
     )
 
-    user: Mapped["User"] = relationship(back_populates="damage_types")
+    user: Mapped["User"] = relationship(back_populates="damage_types", lazy="noload")

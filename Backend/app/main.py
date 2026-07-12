@@ -49,9 +49,10 @@ def create_app() -> FastAPI:
         logger.exception(
             "Database error on %s %s", request.method, request.url.path
         )
+        orig = getattr(exc, "orig", None)
         return JSONResponse(
             status_code=500,
-            content={"detail": f"Database error: {exc.orig}" if exc.orig else str(exc)},
+            content={"detail": f"Database error: {orig}" if orig else str(exc)},
         )
 
     @app.exception_handler(PydanticValidationError)

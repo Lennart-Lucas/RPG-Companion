@@ -21,9 +21,7 @@ async def create_damage_type(
     user: User = Depends(get_current_active_user),
 ) -> DamageTypeResponse:
     damage_type = await damage_type_service.create_damage_type(session, user, body)
-    await session.flush()
-    await session.refresh(damage_type)
-    return DamageTypeResponse.model_validate(damage_type)
+    return damage_type_service.damage_type_to_response(damage_type)
 
 
 @router.get("", response_model=DamageTypeListResponse)
@@ -37,7 +35,7 @@ async def list_damage_types(
         session, user, limit=limit, offset=offset
     )
     return DamageTypeListResponse(
-        items=[DamageTypeResponse.model_validate(item) for item in items],
+        items=[damage_type_service.damage_type_to_response(item) for item in items],
         total=total,
         limit=limit,
         offset=offset,
@@ -53,7 +51,7 @@ async def get_damage_type(
     damage_type = await damage_type_service.get_damage_type(
         session, user, damage_type_id
     )
-    return DamageTypeResponse.model_validate(damage_type)
+    return damage_type_service.damage_type_to_response(damage_type)
 
 
 @router.patch("/{damage_type_id}", response_model=DamageTypeResponse)
@@ -66,9 +64,7 @@ async def update_damage_type(
     damage_type = await damage_type_service.update_damage_type(
         session, user, damage_type_id, body
     )
-    await session.flush()
-    await session.refresh(damage_type)
-    return DamageTypeResponse.model_validate(damage_type)
+    return damage_type_service.damage_type_to_response(damage_type)
 
 
 @router.delete("/{damage_type_id}", status_code=204)
