@@ -1,333 +1,265 @@
 import 'package:flutter/material.dart';
-import 'package:rpg_companion/core/markdown/markdown_wiki_display.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:rpg_companion/features/player/spells/widgets/mtg/mtg_card_layout.dart';
+import 'package:rpg_companion/features/player/spells/widgets/mtg/mtg_card_markdown_fit.dart';
+import 'package:rpg_companion/features/player/spells/widgets/mtg/mtg_card_rules_scale.dart';
+import 'package:rpg_companion/features/player/spells/widgets/mtg/spell_school_icons.dart';
 import 'package:rpg_companion/features/player/spells/widgets/spell_card_data.dart';
-import 'package:rpg_companion/features/player/spells/widgets/spell_card_layout.dart';
 
-class SpellCardTheme {
-  const SpellCardTheme({
-    required this.cardBackground,
-    required this.headerBackground,
-    required this.headerText,
-    required this.subheaderBackground,
-    required this.subheaderText,
-    required this.accent,
-    required this.secondaryAccent,
-    required this.infoLabelBackground,
-    required this.infoValueBackground,
-    required this.infoRowDivider,
-    required this.infoLabelText,
-    required this.infoValueText,
-    required this.footerBackground,
-    required this.footerText,
-    required this.textPrimary,
-    required this.textSecondary,
-    required this.divider,
-    required this.border,
-    required this.watermark,
-    required this.bodyTextStyle,
-    required this.linkColor,
-  });
-
-  final Color cardBackground;
-  final Color headerBackground;
-  final Color headerText;
-  final Color subheaderBackground;
-  final Color subheaderText;
-  final Color accent;
-  final Color secondaryAccent;
-  final Color infoLabelBackground;
-  final Color infoValueBackground;
-  final Color infoRowDivider;
-  final Color infoLabelText;
-  final Color infoValueText;
-  final Color footerBackground;
-  final Color footerText;
-  final Color textPrimary;
-  final Color textSecondary;
-  final Color divider;
-  final Color border;
-  final Color watermark;
-  final TextStyle bodyTextStyle;
-  final Color linkColor;
-
-  factory SpellCardTheme.of(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return SpellCardTheme(
-      cardBackground: scheme.surfaceContainerLow,
-      headerBackground: scheme.primaryContainer,
-      headerText: scheme.onPrimaryContainer,
-      subheaderBackground: scheme.secondaryContainer,
-      subheaderText: scheme.onSecondaryContainer,
-      accent: scheme.primary,
-      secondaryAccent: scheme.secondary,
-      infoLabelBackground: Color.alphaBlend(
-        Colors.black.withValues(alpha: 0.35),
-        scheme.primary,
-      ),
-      infoValueBackground: Color.alphaBlend(
-        Colors.black.withValues(alpha: 0.55),
-        scheme.primary,
-      ),
-      infoRowDivider: Colors.black.withValues(alpha: 0.45),
-      infoLabelText: scheme.onPrimary,
-      infoValueText: scheme.onPrimary,
-      footerBackground: scheme.secondaryContainer,
-      footerText: scheme.onSecondaryContainer,
-      textPrimary: scheme.onSurface,
-      textSecondary: scheme.onSurfaceVariant,
-      divider: scheme.outlineVariant,
-      border: scheme.primary.withValues(alpha: 0.55),
-      watermark: scheme.secondary.withValues(alpha: 0.14),
-      linkColor: scheme.primary,
-      bodyTextStyle: textTheme.bodySmall?.copyWith(
-            color: scheme.onSurface,
-            height: 1.4,
-          ) ??
-          TextStyle(color: scheme.onSurface, fontSize: 12, height: 1.4),
-    );
-  }
+Color _lighterVariant(Color base, {double amount = 0.08}) {
+  final hsl = HSLColor.fromColor(base);
+  return hsl.withLightness((hsl.lightness + amount).clamp(0.0, 1.0)).toColor();
 }
+
+Color _darkerVariant(Color base, {double amount = 0.08}) {
+  final hsl = HSLColor.fromColor(base);
+  return hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0)).toColor();
+}
+
+double _bandIconSize(double maxFontSize) =>
+    (maxFontSize * 14 / kMtgCardRulesMaxFontSize).clamp(13.0, 19.0);
 
 class SpellCard extends StatelessWidget {
   const SpellCard({
     super.key,
     required this.data,
     required this.bodyMarkdown,
-    this.showInfoBlock = true,
+    this.showMechanics = true,
+    this.continuationIndex,
+    this.continuationTotal,
+    this.rulesScaleController,
+    this.cardScale = 1.0,
+    this.padding = EdgeInsets.zero,
+    this.maxFontSize = kMtgCardRulesMaxFontSize,
   });
 
   final SpellCardData data;
   final String bodyMarkdown;
-  final bool showInfoBlock;
+  final bool showMechanics;
+  final int? continuationIndex;
+  final int? continuationTotal;
+  final MtgCardRulesScaleController? rulesScaleController;
+  final double cardScale;
+  final EdgeInsetsGeometry padding;
+  final double maxFontSize;
 
   @override
   Widget build(BuildContext context) {
-    final cardTheme = SpellCardTheme.of(context);
+    final colors = Theme.of(context).colorScheme;
+    final rulesContent = bodyMarkdown.trim();
+    final hasRules = rulesContent.isNotEmpty;
 
-    return Center(
-      child: SizedBox(
-        width: SpellCardLayout.width,
-        height: SpellCardLayout.height,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: cardTheme.cardBackground,
-            borderRadius: BorderRadius.circular(SpellCardLayout.borderRadius),
-            border: Border.all(color: cardTheme.border, width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: cardTheme.accent.withValues(alpha: 0.18),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(SpellCardLayout.borderRadius),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _Header(title: data.title, theme: cardTheme),
-                _Subheader(line: data.levelSchoolLine, theme: cardTheme),
-                if (showInfoBlock) _InfoBlock(data: data, theme: cardTheme),
-                Expanded(
-                  child: _Body(
-                    source: bodyMarkdown,
-                    theme: cardTheme,
-                  ),
+    return Padding(
+      padding: padding,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final baseSize = computeMtgCardLogicalSize(context, constraints);
+          final size = Size(
+            baseSize.width * cardScale,
+            baseSize.height * cardScale,
+          );
+
+          return Align(
+            alignment: Alignment.topCenter,
+            widthFactor: 1,
+            heightFactor: 1,
+            child: SizedBox(
+              width: size.width,
+              height: size.height,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(kMtgCardBorderRadius),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SpellHeaderBand(
+                      data: data,
+                      colors: colors,
+                      maxFontSize: maxFontSize,
+                      continuationIndex: continuationIndex,
+                      continuationTotal: continuationTotal,
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: colors.surfaceContainerLowest,
+                                borderRadius: data.hasFooter
+                                    ? BorderRadius.zero
+                                    : const BorderRadius.only(
+                                        bottomLeft: Radius.circular(
+                                          kMtgCardBorderRadius,
+                                        ),
+                                        bottomRight: Radius.circular(
+                                          kMtgCardBorderRadius,
+                                        ),
+                                      ),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  IgnorePointer(
+                                    child: Center(
+                                      child: Icon(
+                                        spellSchoolIcon(data.spell.school),
+                                        size: size.shortestSide * 0.58,
+                                        color: colors.primary.withValues(
+                                          alpha: kItemCardWatermarkIconAlpha,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      if (showMechanics)
+                                        Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            8,
+                                            8,
+                                            8,
+                                            0,
+                                          ),
+                                          child: _SpellMechanicsSection(
+                                            data: data,
+                                            colors: colors,
+                                            maxFontSize: maxFontSize,
+                                          ),
+                                        ),
+                                      if (hasRules)
+                                        Expanded(
+                                          child: Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              10,
+                                              8,
+                                              10,
+                                              10,
+                                            ),
+                                            child: MtgCardMarkdownFit(
+                                              source: rulesContent,
+                                              onSurface: colors.onSurface,
+                                              maxFontSize: maxFontSize,
+                                              scaleController:
+                                                  rulesScaleController,
+                                            ),
+                                          ),
+                                        )
+                                      else
+                                        const Spacer(),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (data.hasFooter)
+                            _SpellFooterBand(
+                              classesText: data.classesLine,
+                              colors: colors,
+                              maxFontSize: maxFontSize,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                _Footer(classesLine: data.classesLine, theme: cardTheme),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.title, required this.theme});
-
-  final String title;
-  final SpellCardTheme theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: SpellCardLayout.headerHeight,
-      decoration: BoxDecoration(
-        color: theme.headerBackground,
-        border: Border(
-          bottom: BorderSide(
-            color: theme.accent.withValues(alpha: 0.35),
-            width: 1,
-          ),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      alignment: Alignment.centerLeft,
-      child: Text(
-        title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: theme.headerText,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.4,
-            ),
-      ),
-    );
-  }
-}
-
-class _Subheader extends StatelessWidget {
-  const _Subheader({required this.line, required this.theme});
-
-  final String line;
-  final SpellCardTheme theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: SpellCardLayout.subheaderHeight,
-      color: theme.subheaderBackground,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          Icon(
-            Icons.menu_book_outlined,
-            size: 14,
-            color: theme.accent,
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              line,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: theme.subheaderText,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoBlock extends StatelessWidget {
-  const _InfoBlock({required this.data, required this.theme});
-
-  static const _cornerRadius = 6.0;
-
-  final SpellCardData data;
-  final SpellCardTheme theme;
-
-  @override
-  Widget build(BuildContext context) {
-    final rows = <(String, String)>[
-      ('Casting', data.castingLine),
-      ('Duration', data.durationLine),
-      ('Components', data.componentsLine),
-    ];
-
-    return ColoredBox(
-      color: theme.cardBackground,
-      child: SizedBox(
-        height: SpellCardLayout.infoBlockHeight,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            SpellCardLayout.infoBlockHorizontalPadding,
-            4,
-            SpellCardLayout.infoBlockHorizontalPadding,
-            4,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(_cornerRadius),
-            child: Column(
-              children: [
-                for (var i = 0; i < rows.length; i++) ...[
-                  if (i > 0)
-                    Divider(
-                      height: 1,
-                      thickness: 1,
-                      color: theme.infoRowDivider,
-                    ),
-                  Expanded(
-                    child: _InfoRow(
-                      label: rows[i].$1,
-                      value: rows[i].$2,
-                      theme: theme,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
-    required this.label,
-    required this.value,
-    required this.theme,
+class _SpellHeaderBand extends StatelessWidget {
+  const _SpellHeaderBand({
+    required this.data,
+    required this.colors,
+    required this.maxFontSize,
+    this.continuationIndex,
+    this.continuationTotal,
   });
 
-  final String label;
-  final String value;
-  final SpellCardTheme theme;
+  final SpellCardData data;
+  final ColorScheme colors;
+  final double maxFontSize;
+  final int? continuationIndex;
+  final int? continuationTotal;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final titleBandColor = _darkerVariant(colors.primaryContainer, amount: 0.12);
+    final subheaderBandColor = colors.primaryContainer;
+    final titleFontSize = maxFontSize * kMtgCardTitleToRulesMaxFontScale;
+    final summaryFontSize = maxFontSize;
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          flex: 1,
-          child: ColoredBox(
-            color: theme.infoLabelBackground,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: theme.infoLabelText,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-              ),
+        Container(
+          decoration: BoxDecoration(
+            color: titleBandColor,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(kMtgCardBorderRadius),
+              topRight: Radius.circular(kMtgCardBorderRadius),
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(8, 6, 8, 5),
+          child: Text(
+            data.title.toUpperCase(),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.onPrimaryContainer,
+              fontWeight: FontWeight.w700,
+              fontSize: titleFontSize,
+              letterSpacing: 0.75,
+              height: 1.05,
             ),
           ),
         ),
-        Expanded(
-          flex: 2,
-          child: ColoredBox(
-            color: theme.infoValueBackground,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
+        Container(
+          color: subheaderBandColor,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                FontAwesomeIcons.wandMagicSparkles,
+                size: _bandIconSize(maxFontSize),
+                color: colors.onPrimaryContainer,
+              ),
+              const SizedBox(width: 5),
+              Expanded(
                 child: Text(
-                  value,
+                  data.summaryLine(
+                    continuationIndex: continuationIndex,
+                    continuationTotal: continuationTotal,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: theme.infoValueText,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  style: TextStyle(
+                    color: colors.onPrimaryContainer,
+                    fontSize: summaryFontSize,
+                    fontWeight: FontWeight.w600,
+                    height: 1.0,
+                  ),
+                  strutStyle: StrutStyle(
+                    fontSize: summaryFontSize,
+                    height: 1.0,
+                    leading: 0,
+                    fontWeight: FontWeight.w600,
+                    forceStrutHeight: true,
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ],
@@ -335,122 +267,218 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-class _Body extends StatelessWidget {
-  const _Body({required this.source, required this.theme});
+class _SpellMechanicsSection extends StatelessWidget {
+  const _SpellMechanicsSection({
+    required this.data,
+    required this.colors,
+    required this.maxFontSize,
+  });
 
-  final String source;
-  final SpellCardTheme theme;
+  final SpellCardData data;
+  final ColorScheme colors;
+  final double maxFontSize;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    final emphasizedRowsColor = _lighterVariant(colors.surface, amount: 0.06);
+    final emphasizedBlockColor =
+        _lighterVariant(colors.surfaceContainerHigh, amount: 0.07);
+    final emphasizedRowValueColor =
+        _lighterVariant(colors.surfaceContainerLowest, amount: 0.1);
+    final emphasizedDividerColor =
+        _darkerVariant(emphasizedBlockColor, amount: 0.015);
+
+    final rows = <(String, String)>[
+      ('Casting', data.castingAndRangeLine),
+      ('Duration', data.durationLine),
+      ('Components', data.componentsLine),
+    ];
+
+    return _SpellMechanicsRowsBlock(
+      rows: rows,
+      colors: colors,
+      maxFontSize: maxFontSize,
+      backgroundColor: emphasizedRowsColor,
+      labelBackgroundColor: emphasizedBlockColor,
+      valueBackgroundColor: emphasizedRowValueColor,
+      dividerColor: emphasizedDividerColor,
+    );
+  }
+}
+
+class _SpellMechanicsRowsBlock extends StatelessWidget {
+  const _SpellMechanicsRowsBlock({
+    required this.rows,
+    required this.colors,
+    required this.maxFontSize,
+    this.backgroundColor,
+    this.labelBackgroundColor,
+    this.valueBackgroundColor,
+    this.dividerColor,
+  });
+
+  final List<(String, String)> rows;
+  final ColorScheme colors;
+  final double maxFontSize;
+  final Color? backgroundColor;
+  final Color? labelBackgroundColor;
+  final Color? valueBackgroundColor;
+  final Color? dividerColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            theme.cardBackground,
-            Color.alphaBlend(
-              theme.accent.withValues(alpha: 0.06),
-              theme.cardBackground,
-            ),
-          ],
-        ),
+        borderRadius: BorderRadius.circular(8),
+        color: backgroundColor ?? colors.surface,
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          SpellCardLayout.bodyPadding,
-          2,
-          SpellCardLayout.bodyPadding,
-          4,
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Align(
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.nightlight_round,
-                  size: 96,
-                  color: theme.watermark,
-                ),
-              ),
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            _SpellLabeledValueRow(
+              label: rows[i].$1,
+              value: rows[i].$2,
+              colors: colors,
+              maxFontSize: maxFontSize,
+              labelBackgroundColor: labelBackgroundColor,
+              valueBackgroundColor: valueBackgroundColor,
             ),
-            Theme(
-              data: Theme.of(context).copyWith(
-                colorScheme: Theme.of(context).colorScheme.copyWith(
-                      primary: theme.linkColor,
-                    ),
-                textTheme: Theme.of(context).textTheme.apply(
-                      bodyColor: theme.textPrimary,
-                      displayColor: theme.textPrimary,
-                    ),
+            if (i != rows.length - 1)
+              Divider(
+                height: 1,
+                thickness: 1,
+                color: dividerColor ?? colors.outlineVariant,
               ),
-              child: DefaultTextStyle(
-                style: theme.bodyTextStyle,
-                child: ClipRect(
-                  child: source.trim().isEmpty
-                      ? const SizedBox.expand()
-                      : MarkdownWikiDisplay(source: source),
-                ),
-              ),
-            ),
           ],
-        ),
+        ],
       ),
     );
   }
 }
 
-class _Footer extends StatelessWidget {
-  const _Footer({required this.classesLine, required this.theme});
+class _SpellLabeledValueRow extends StatelessWidget {
+  const _SpellLabeledValueRow({
+    required this.label,
+    required this.value,
+    required this.colors,
+    required this.maxFontSize,
+    this.labelBackgroundColor,
+    this.valueBackgroundColor,
+  });
 
-  final String classesLine;
-  final SpellCardTheme theme;
+  final String label;
+  final String value;
+  final ColorScheme colors;
+  final double maxFontSize;
+  final Color? labelBackgroundColor;
+  final Color? valueBackgroundColor;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: SpellCardLayout.footerHeight,
-      child: Column(
+    final lb = labelBackgroundColor ?? colors.surfaceContainerHighest;
+    final vb = valueBackgroundColor ?? colors.surface;
+    final labelFontSize = (maxFontSize * 0.92).clamp(10.5, 14.0);
+
+    return IntrinsicHeight(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: theme.secondaryAccent.withValues(alpha: 0.45),
+          Expanded(
+            flex: 38,
+            child: Container(
+              color: lb,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              alignment: Alignment.centerRight,
+              child: Text(
+                label,
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: colors.primary,
+                  fontSize: labelFontSize,
+                  fontWeight: FontWeight.w700,
+                  height: 1.15,
+                ),
+              ),
+            ),
           ),
           Expanded(
-            child: ColoredBox(
-              color: theme.footerBackground,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.school_outlined,
-                      size: 14,
-                      color: theme.accent,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        classesLine,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: theme.footerText,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ),
-                  ],
+            flex: 62,
+            child: Container(
+              color: vb,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: maxFontSize,
+                  color: colors.onSurface,
+                  height: 1.2,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SpellFooterBand extends StatelessWidget {
+  const _SpellFooterBand({
+    required this.classesText,
+    required this.colors,
+    required this.maxFontSize,
+  });
+
+  final String classesText;
+  final ColorScheme colors;
+  final double maxFontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final footerColor = _darkerVariant(colors.primaryContainer, amount: 0.12);
+
+    return Material(
+      color: footerColor,
+      borderRadius: const BorderRadius.only(
+        bottomLeft: Radius.circular(kMtgCardBorderRadius),
+        bottomRight: Radius.circular(kMtgCardBorderRadius),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 6, 8, 7),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(
+              FontAwesomeIcons.graduationCap,
+              size: _bandIconSize(maxFontSize),
+              color: colors.onPrimaryContainer,
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: Text(
+                classesText,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.onPrimaryContainer,
+                  fontSize: maxFontSize,
+                  fontWeight: FontWeight.w600,
+                  height: 1.2,
+                ),
+                strutStyle: StrutStyle(
+                  fontSize: maxFontSize,
+                  height: 1.2,
+                  leading: 0,
+                  fontWeight: FontWeight.w600,
+                  forceStrutHeight: true,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
