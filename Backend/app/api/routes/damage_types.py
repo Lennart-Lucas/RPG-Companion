@@ -20,7 +20,7 @@ async def create_damage_type(
     session: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_active_user),
 ) -> DamageTypeResponse:
-    return await damage_type_service.create_damage_type(session, user, body)
+    return await damage_type_service.create_damage_type(session, user.id, body)
 
 
 @router.get("", response_model=DamageTypeListResponse)
@@ -31,7 +31,7 @@ async def list_damage_types(
     user: User = Depends(get_current_active_user),
 ) -> DamageTypeListResponse:
     items, total = await damage_type_service.list_damage_types(
-        session, user, limit=limit, offset=offset
+        session, user.id, limit=limit, offset=offset
     )
     return DamageTypeListResponse(
         items=items,
@@ -47,7 +47,7 @@ async def get_damage_type(
     session: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_active_user),
 ) -> DamageTypeResponse:
-    return await damage_type_service.get_damage_type(session, user, damage_type_id)
+    return await damage_type_service.get_damage_type(session, user.id, damage_type_id)
 
 
 @router.patch("/{damage_type_id}", response_model=DamageTypeResponse)
@@ -58,7 +58,7 @@ async def update_damage_type(
     user: User = Depends(get_current_active_user),
 ) -> DamageTypeResponse:
     return await damage_type_service.update_damage_type(
-        session, user, damage_type_id, body
+        session, user.id, damage_type_id, body
     )
 
 
@@ -68,4 +68,4 @@ async def delete_damage_type(
     session: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_active_user),
 ) -> None:
-    await damage_type_service.delete_damage_type(session, user, damage_type_id)
+    await damage_type_service.delete_damage_type(session, user.id, damage_type_id)

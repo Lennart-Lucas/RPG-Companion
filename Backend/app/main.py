@@ -9,7 +9,7 @@ from pydantic import ValidationError as PydanticValidationError
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 
 from app.api.routes import auth, authors, classes, damage_types, files, health, spell_tags, spells
 from app.config import settings
@@ -50,9 +50,12 @@ def create_app() -> FastAPI:
             "Database error on %s %s", request.method, request.url.path
         )
         orig = getattr(exc, "orig", None)
+        detail = f"Database error: {orig}" if orig else str(exc)
+        if isinstance(exc, DBAPIError) and orig is not None:
+            detail = str(orig)
         return JSONResponse(
             status_code=500,
-            content={"detail": f"Database error: {orig}" if orig else str(exc)},
+            content={"detail": detail},
         )
 
     @app.exception_handler(PydanticValidationError)

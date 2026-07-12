@@ -1,53 +1,48 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.damage_type import DamageType
-from app.models.user import User
 from app.schemas.damage_type import (
     DamageTypeCreate,
     DamageTypeResponse,
     DamageTypeUpdate,
 )
-from app.services.resource_helpers import apply_list_filters, clamp_pagination, soft_delete
+from app.services.resource_helpers import clamp_pagination
 
-_DAMAGE_TYPE_RESPONSE_COLUMNS = (
-    DamageType.id,
-    DamageType.name,
-    DamageType.description,
-    DamageType.icon,
-    DamageType.color,
-    DamageType.created_at,
-    DamageType.updated_at,
+_damage_types = DamageType.__table__
+
+_RETURNING = (
+    _damage_types.c.id,
+    _damage_types.c.name,
+    _damage_types.c.description,
+    _damage_types.c.icon,
+    _damage_types.c.color,
+    _damage_types.c.created_at,
+    _damage_types.c.updated_at,
 )
+
+_ACTIVE = _damage_types.c.deleted_at.is_(None)
 
 
 def _response_from_row(row) -> DamageTypeResponse:
     return DamageTypeResponse(**row._mapping)
 
 
-async def _fetch_damage_type_response(
-    session: AsyncSession, damage_type_id: int, user_id: int
-) -> DamageTypeResponse:
-    result = await session.execute(
-        select(*_DAMAGE_TYPE_RESPONSE_COLUMNS).where(
-            DamageType.id == damage_type_id,
-            DamageType.user_id == user_id,
-            DamageType.deleted_at.is_(None),
-        )
+def _owned(user_id: int, damage_type_id: int):
+    return (
+        _damage_types.c.id == damage_type_id,
+        _damage_types.c.user_id == user_id,
+        _ACTIVE,
     )
-    row = result.one()
-    return _response_from_row(row)
 
 
 async def get_damage_type(
-    session: AsyncSession, user: User, damage_type_id: int
+    session: AsyncSession, user_id: int, damage_type_id: int
 ) -> DamageTypeResponse:
     result = await session.execute(
-        select(*_DAMAGE_TYPE_RESPONSE_COLUMNS).where(
-            DamageType.id == damage_type_id,
-            DamageType.user_id == user.id,
-            DamageType.deleted_at.is_(None),
-        )
+        select(*_RETURNING).where(*_owned(user_id, damage_type_id))
     )
     row = result.one_or_none()
     if row is None:
@@ -61,41 +56,40 @@ async def get_damage_type(
 
 
 async def create_damage_type(
-    session: AsyncSession, user: User, data: DamageTypeCreate
+    session: AsyncSession, user_id: int, data: DamageTypeCreate
 ) -> DamageTypeResponse:
     result = await session.execute(
-        insert(DamageType)
+        insert(_damage_types)
         .values(
-            user_id=user.id,
+            user_id=user_id,
             name=data.name,
             description=data.description,
             icon=data.icon,
             color=data.color,
         )
-        .returning(*_DAMAGE_TYPE_RESPONSE_COLUMNS)
+        .returning(*_RETURNING)
     )
     return _response_from_row(result.one())
 
 
 async def list_damage_types(
     session: AsyncSession,
-    user: User,
+    user_id: int,
     *,
     limit: int = 50,
     offset: int = 0,
 ) -> tuple[list[DamageTypeResponse], int]:
     limit, offset = clamp_pagination(limit, offset)
-    base = select(DamageType).where(DamageType.user_id == user.id)
-    base = apply_list_filters(base, DamageType)
-    count_stmt = select(func.count()).select_from(base.subquery())
+    count_stmt = (
+        select(func.count())
+        .select_from(_damage_types)
+        .where(_damage_types.c.user_id == user_id, _ACTIVE)
+    )
     total = (await session.execute(count_stmt)).scalar_one()
     stmt = (
-        select(*_DAMAGE_TYPE_RESPONSE_COLUMNS)
-        .where(
-            DamageType.user_id == user.id,
-            DamageType.deleted_at.is_(None),
-        )
-        .order_by(DamageType.name.asc())
+        select(*_RETURNING)
+        .where(_damage_types.c.user_id == user_id, _ACTIVE)
+        .order_by(_damage_types.c.name.asc())
         .limit(limit)
         .offset(offset)
     )
@@ -105,9 +99,12 @@ async def list_damage_types(
 
 
 async def update_damage_type(
-    session: AsyncSession, user: User, damage_type_id: int, data: DamageTypeUpdate
+    session: AsyncSession,
+    user_id: int,
+    damage_type_id: int,
+    data: DamageTypeUpdate,
 ) -> DamageTypeResponse:
-    await get_damage_type(session, user, damage_type_id)
+    await get_damage_type(session, user_id, damage_type_id)
 
     values: dict[str, object] = {}
     fields_set = data.model_fields_set
@@ -121,38 +118,30 @@ async def update_damage_type(
         values["color"] = data.color
 
     if not values:
-        return await _fetch_damage_type_response(session, damage_type_id, user.id)
+        return await get_damage_type(session, user_id, damage_type_id)
 
     result = await session.execute(
-        update(DamageType)
-        .where(
-            DamageType.id == damage_type_id,
-            DamageType.user_id == user.id,
-            DamageType.deleted_at.is_(None),
-        )
+        update(_damage_types)
+        .where(*_owned(user_id, damage_type_id))
         .values(**values)
-        .returning(*_DAMAGE_TYPE_RESPONSE_COLUMNS)
+        .returning(*_RETURNING)
     )
-    row = result.one()
-    return _response_from_row(row)
+    return _response_from_row(result.one())
 
 
 async def delete_damage_type(
-    session: AsyncSession, user: User, damage_type_id: int
+    session: AsyncSession, user_id: int, damage_type_id: int
 ) -> None:
     result = await session.execute(
-        select(DamageType).where(
-            DamageType.id == damage_type_id,
-            DamageType.user_id == user.id,
-            DamageType.deleted_at.is_(None),
-        )
+        update(_damage_types)
+        .where(*_owned(user_id, damage_type_id))
+        .values(deleted_at=datetime.now(UTC))
+        .returning(_damage_types.c.id)
     )
-    damage_type = result.scalar_one_or_none()
-    if damage_type is None:
+    if result.one_or_none() is None:
         from fastapi import HTTPException, status
 
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Damage type not found",
         )
-    await soft_delete(damage_type)
