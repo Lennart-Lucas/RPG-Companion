@@ -48,6 +48,49 @@ class AppShell extends StatelessWidget {
           ],
         ),
         MenuGroup(
+          key: 'mechanics',
+          label: 'Mechanics',
+          iconName: 'Puzzle Piece',
+          children: [
+            MenuLink(
+              key: 'conditions',
+              label: 'Conditions',
+              iconName: 'Heart Pulse',
+              content: _placeholderContent,
+            ),
+            MenuLink(
+              key: 'damage-types',
+              label: 'Damage types',
+              iconName: 'Fire Flame',
+              content: _placeholderContent,
+            ),
+            MenuLink(
+              key: 'item-properties',
+              label: 'Item properties',
+              iconName: 'Sliders',
+              content: _placeholderContent,
+            ),
+            MenuLink(
+              key: 'skills',
+              label: 'Skills',
+              iconName: 'Brain',
+              content: _placeholderContent,
+            ),
+            MenuLink(
+              key: 'spell-tags',
+              label: 'Spell tags',
+              iconName: 'Tag',
+              content: _placeholderContent,
+            ),
+            MenuLink(
+              key: 'spell-lists',
+              label: 'Spell lists',
+              iconName: 'List Ol',
+              content: _placeholderContent,
+            ),
+          ],
+        ),
+        MenuGroup(
           key: 'dm-tools',
           label: 'DM Tools',
           iconName: 'Dice D20',

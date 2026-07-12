@@ -23,6 +23,12 @@ import 'package:rpg_companion/features/player/spells/pages/spell_create_page.dar
 import 'package:rpg_companion/features/player/spells/pages/spell_detail_page.dart';
 import 'package:rpg_companion/features/player/spells/pages/spells_page.dart';
 import 'package:rpg_companion/features/player/spell_tags/pages/spell_tag_create_page.dart';
+import 'package:rpg_companion/features/reference/pages/conditions_page.dart';
+import 'package:rpg_companion/features/reference/pages/damage_types_page.dart';
+import 'package:rpg_companion/features/reference/pages/item_properties_page.dart';
+import 'package:rpg_companion/features/reference/pages/skills_page.dart';
+import 'package:rpg_companion/features/reference/pages/spell_lists_page.dart';
+import 'package:rpg_companion/features/reference/spell_tags/pages/spell_tags_page.dart';
 import 'package:rpg_companion/shell/app_shell.dart';
 
 Page<void> _noTransitionPage({
@@ -115,10 +121,6 @@ GoRouter buildRpgRouter({
                 builder: (context, state) => const SpellCreatePage(),
               ),
               GoRoute(
-                path: 'spell-tags/new',
-                builder: (context, state) => const SpellTagCreatePage(),
-              ),
-              GoRoute(
                 path: ':spellId',
                 builder: (context, state) => SpellDetailPage(
                   spellId: state.pathParameters['spellId']!,
@@ -126,6 +128,36 @@ GoRouter buildRpgRouter({
                 ),
               ),
             ],
+          ),
+          _shellBranch(
+            path: RpgRoutes.referenceConditions,
+            child: const ConditionsPage(),
+          ),
+          _shellBranch(
+            path: RpgRoutes.referenceDamageTypes,
+            child: const DamageTypesPage(),
+          ),
+          _shellBranch(
+            path: RpgRoutes.referenceItemProperties,
+            child: const ItemPropertiesPage(),
+          ),
+          _shellBranch(
+            path: RpgRoutes.referenceSkills,
+            child: const SkillsPage(),
+          ),
+          _shellBranch(
+            path: RpgRoutes.referenceSpellTags,
+            child: const SpellTagsPage(),
+            nestedRoutes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) => const SpellTagCreatePage(),
+              ),
+            ],
+          ),
+          _shellBranch(
+            path: RpgRoutes.referenceSpellLists,
+            child: const SpellListsPage(),
           ),
           _shellBranch(
             path: RpgRoutes.dmToolsResources,

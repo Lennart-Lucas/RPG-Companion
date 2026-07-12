@@ -7,11 +7,18 @@ abstract final class RpgRoutes {
   static const playerClasses = '/player/classes';
   static const playerSpells = '/player/spells';
 
+  static const referenceConditions = '/reference/conditions';
+  static const referenceDamageTypes = '/reference/damage-types';
+  static const referenceItemProperties = '/reference/item-properties';
+  static const referenceSkills = '/reference/skills';
+  static const referenceSpellTags = '/reference/spell-tags';
+  static const referenceSpellLists = '/reference/spell-lists';
+
   static const classCreate = '$playerClasses/new';
 
   static String classDetail(String classId) => '$playerClasses/$classId';
 
-  static const spellTagCreate = '$playerSpells/spell-tags/new';
+  static const spellTagCreate = '$referenceSpellTags/new';
 
   static const spellCreate = '$playerSpells/new';
 
@@ -32,17 +39,35 @@ abstract final class RpgRoutes {
 
   static const shellBranchClasses = 0;
   static const shellBranchSpells = 1;
-  static const shellBranchResources = 2;
+  static const shellBranchConditions = 2;
+  static const shellBranchDamageTypes = 3;
+  static const shellBranchItemProperties = 4;
+  static const shellBranchSkills = 5;
+  static const shellBranchSpellTags = 6;
+  static const shellBranchSpellLists = 7;
+  static const shellBranchResources = 8;
 
   static const shellPaths = [
     playerClasses,
     playerSpells,
+    referenceConditions,
+    referenceDamageTypes,
+    referenceItemProperties,
+    referenceSkills,
+    referenceSpellTags,
+    referenceSpellLists,
     dmToolsResources,
   ];
 
   static const shellMenuKeys = [
     'classes',
     'spells',
+    'conditions',
+    'damage-types',
+    'item-properties',
+    'skills',
+    'spell-tags',
+    'spell-lists',
     'resources',
   ];
 
