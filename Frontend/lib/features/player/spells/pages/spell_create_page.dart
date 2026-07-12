@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:rpg_companion/core/records/rpg_record_repository.dart';
 import 'package:rpg_companion/features/player/spells/forms/spell_form_config.dart';
+import 'package:rpg_companion/features/player/spells/widgets/spell_ai_clipboard_bar.dart';
 
 class SpellCreatePage extends StatelessWidget {
   const SpellCreatePage({super.key});
@@ -28,6 +29,7 @@ class SpellCreatePage extends StatelessWidget {
         child: AnvilForm(
           config: buildSpellFormConfig(recordBloc),
           submitLabel: 'Create spell',
+          submitActions: const [SpellAiClipboardBar()],
           onCancel: () => context.pop(),
           onSubmitSuccess: (_) async {
             recordBloc.remoteCoordinator?.refreshQueryRecords(spellsListQuery);

@@ -285,12 +285,17 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
     selectFieldError(widget.fieldKey);
 
     return BlocListener<AnvilFormBloc, AnvilFormState>(
-      listenWhen: (previous, current) =>
-          previous.isHydrating && !current.isHydrating,
+      listenWhen: (previous, current) {
+        if (previous.isHydrating && !current.isHydrating) return true;
+        if (_focusNode.hasFocus) return false;
+        return previous.values[widget.fieldKey] !=
+            current.values[widget.fieldKey];
+      },
       listener: (context, state) {
         final value = state.values[widget.fieldKey];
         if (value is String && value != _controller.text) {
           _controller.text = value;
+          if (mounted) setState(() {});
         }
       },
       child: AnvilFieldWrapper(
