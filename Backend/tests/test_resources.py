@@ -350,6 +350,15 @@ async def test_spell_crud(client: AsyncClient):
     detail = await client.get(f"{API}/spells/{spell_id}", headers=headers)
     assert detail.status_code == 200
 
+    updated = await client.patch(
+        f"{API}/spells/{spell_id}",
+        headers=headers,
+        json={"description": "Updated description with [[damage_types:1]]."},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["description"] == "Updated description with [[damage_types:1]]."
+    assert updated.json()["updated_at"] is not None
+
     reaction_invalid = await client.post(
         f"{API}/spells",
         headers=headers,

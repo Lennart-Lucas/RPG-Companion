@@ -158,6 +158,22 @@ def spell_to_response(
     )
 
 
+async def _spell_to_response_after_write(
+    session: AsyncSession,
+    spell: Spell,
+    *,
+    class_ids: list[int],
+    spell_tag_ids: list[int],
+) -> SpellResponse:
+    """Reload server defaults (e.g. updated_at) before building the response."""
+    await session.refresh(spell)
+    return spell_to_response(
+        spell,
+        class_ids=class_ids,
+        spell_tag_ids=spell_tag_ids,
+    )
+
+
 async def get_spell(session: AsyncSession, user: User, spell_id: int) -> SpellResponse:
     result = await session.execute(
         select(Spell).where(
@@ -215,7 +231,8 @@ async def create_spell(
     await _replace_spell_classes(session, spell.id, data.class_ids)
     await _replace_spell_tags(session, spell.id, data.spell_tag_ids)
     await session.flush()
-    return spell_to_response(
+    return await _spell_to_response_after_write(
+        session,
         spell,
         class_ids=data.class_ids,
         spell_tag_ids=data.spell_tag_ids,
@@ -320,7 +337,8 @@ async def update_spell(
     await session.flush()
     class_ids = await _fetch_class_ids(session, spell.id)
     spell_tag_ids = await _fetch_spell_tag_ids(session, spell.id)
-    return spell_to_response(
+    return await _spell_to_response_after_write(
+        session,
         spell,
         class_ids=class_ids,
         spell_tag_ids=spell_tag_ids,
