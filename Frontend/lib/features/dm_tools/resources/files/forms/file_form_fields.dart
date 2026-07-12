@@ -137,25 +137,29 @@ class _AuthorPickerFieldState extends State<AuthorPickerField> {
     );
     final decoration = RpgFormStyles.fieldDecoration(context);
 
-    return InputDecorator(
+    return AnvilHoverableFieldShell(
+      enabled: !_isLoading,
       decoration: decoration.copyWith(labelText: 'Author'),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String?>(
-          isExpanded: true,
-          value: _authors.any((a) => a.id == selectedId) ? selectedId : null,
-          hint: Text(_isLoading ? 'Loading authors...' : 'Select author'),
-          items: [
-            const DropdownMenuItem<String?>(
-              value: null,
-              child: Text('None'),
-            ),
-            for (final author in _authors)
-              DropdownMenuItem<String?>(
-                value: author.id,
-                child: Text(author.name),
+      builder: (hoverDecoration) => InputDecorator(
+        decoration: hoverDecoration,
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String?>(
+            isExpanded: true,
+            value: _authors.any((a) => a.id == selectedId) ? selectedId : null,
+            hint: Text(_isLoading ? 'Loading authors...' : 'Select author'),
+            items: [
+              const DropdownMenuItem<String?>(
+                value: null,
+                child: Text('None'),
               ),
-          ],
-          onChanged: _isLoading ? null : _updateAuthor,
+              for (final author in _authors)
+                DropdownMenuItem<String?>(
+                  value: author.id,
+                  child: Text(author.name),
+                ),
+            ],
+            onChanged: _isLoading ? null : _updateAuthor,
+          ),
         ),
       ),
     );

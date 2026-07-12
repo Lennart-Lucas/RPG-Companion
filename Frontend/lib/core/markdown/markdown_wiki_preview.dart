@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:rpg_companion/core/markdown/markdown_wiki_display.dart';
+import 'package:rpg_companion/core/ui/rpg_form_styles.dart';
 
 /// Debounced read-only preview pane for markdown + wiki links.
 class MarkdownWikiPreview extends StatefulWidget {
@@ -9,10 +10,12 @@ class MarkdownWikiPreview extends StatefulWidget {
     super.key,
     required this.source,
     this.debounce = const Duration(milliseconds: 150),
+    this.decoration,
   });
 
   final String source;
   final Duration debounce;
+  final InputDecoration? decoration;
 
   @override
   State<MarkdownWikiPreview> createState() => _MarkdownWikiPreviewState();
@@ -53,28 +56,40 @@ class _MarkdownWikiPreviewState extends State<MarkdownWikiPreview> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
+    final fieldDecoration =
+        widget.decoration ?? RpgFormStyles.fieldDecoration(context);
+    final fillColor =
+        fieldDecoration.fillColor ?? RpgFormStyles.fieldFillColor(context);
+    final enabledBorder = fieldDecoration.enabledBorder ?? fieldDecoration.border;
+    final borderSide = enabledBorder is OutlineInputBorder
+        ? enabledBorder.borderSide
+        : BorderSide(color: theme.colorScheme.outline);
+    final borderRadius = enabledBorder is OutlineInputBorder
+        ? enabledBorder.borderRadius.resolve(Directionality.of(context))
+        : BorderRadius.circular(4);
+
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.3),
-        ),
+        color: fillColor,
+        borderRadius: borderRadius,
+        border: Border.fromBorderSide(borderSide),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Preview',
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+      child: Padding(
+        padding: fieldDecoration.contentPadding ??
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Preview',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          MarkdownWikiDisplay(source: _displaySource),
-        ],
+            const SizedBox(height: 8),
+            MarkdownWikiDisplay(source: _displaySource),
+          ],
+        ),
       ),
     );
   }

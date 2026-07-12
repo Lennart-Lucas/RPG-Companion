@@ -120,34 +120,42 @@ class _AuthorLinkRowState extends State<_AuthorLinkRow> {
       children: [
         Expanded(
           flex: 2,
-          child: DropdownButtonFormField<String>(
-          initialValue: AuthorSourceOptions.values.contains(source)
-              ? source
-              : 'website',
+          child: AnvilHoverableFieldShell(
             decoration: widget.urlDecoration.copyWith(labelText: 'Source'),
-            items: [
-              for (final option in AuthorSourceOptions.values)
-                DropdownMenuItem(
-                  value: option,
-                  child: Text(AuthorSourceOptions.labelFor(option)),
-                ),
-            ],
-            onChanged: (value) {
-              if (value != null) {
-                widget.callbacks.onFieldChanged('source', value);
-              }
-            },
+            builder: (hoverDecoration) => DropdownButtonFormField<String>(
+              initialValue: AuthorSourceOptions.values.contains(source)
+                  ? source
+                  : 'website',
+              decoration: hoverDecoration,
+              items: [
+                for (final option in AuthorSourceOptions.values)
+                  DropdownMenuItem(
+                    value: option,
+                    child: Text(AuthorSourceOptions.labelFor(option)),
+                  ),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  widget.callbacks.onFieldChanged('source', value);
+                }
+              },
+            ),
           ),
         ),
         const SizedBox(width: RpgFormStyles.fieldSpacing),
         Expanded(
           flex: 3,
-          child: TextField(
-            controller: _urlController,
-            focusNode: _urlFocusNode,
-            keyboardType: TextInputType.url,
+          child: AnvilHoverableFieldShell(
             decoration: widget.urlDecoration.copyWith(labelText: 'URL'),
-            onChanged: (value) => widget.callbacks.onFieldChanged('url', value),
+            focusNode: _urlFocusNode,
+            builder: (hoverDecoration) => TextField(
+              controller: _urlController,
+              focusNode: _urlFocusNode,
+              keyboardType: TextInputType.url,
+              decoration: hoverDecoration,
+              onChanged: (value) =>
+                  widget.callbacks.onFieldChanged('url', value),
+            ),
           ),
         ),
         if (widget.callbacks.onRemove != null)

@@ -28,11 +28,12 @@ class SpellTagFormFields extends StatelessWidget {
             placeholder: 'Spell tag name',
             decoration: fieldDecoration,
           ),
-          const RpgMarkdownWikiField(
+          RpgMarkdownWikiField(
             fieldKey: SpellTagFormKeys.description,
             label: 'Description',
             minLines: 8,
             placeholder: 'Describe this tag. Type [[ to link records.',
+            decoration: fieldDecoration,
           ),
         ],
       ),

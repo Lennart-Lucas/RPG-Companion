@@ -126,25 +126,29 @@ class _SourceFilePickerFieldState extends State<SourceFilePickerField> {
     );
     final decoration = RpgFormStyles.fieldDecoration(context);
 
-    return InputDecorator(
+    return AnvilHoverableFieldShell(
+      enabled: !_isLoading,
       decoration: decoration.copyWith(labelText: 'Source'),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String?>(
-          isExpanded: true,
-          value: _files.any((file) => file.id == selectedId) ? selectedId : null,
-          hint: Text(_isLoading ? 'Loading files...' : 'Select file'),
-          items: [
-            const DropdownMenuItem<String?>(
-              value: null,
-              child: Text('None'),
-            ),
-            for (final file in _files)
-              DropdownMenuItem<String?>(
-                value: file.id,
-                child: Text(file.name),
+      builder: (hoverDecoration) => InputDecorator(
+        decoration: hoverDecoration,
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String?>(
+            isExpanded: true,
+            value: _files.any((file) => file.id == selectedId) ? selectedId : null,
+            hint: Text(_isLoading ? 'Loading files...' : 'Select file'),
+            items: [
+              const DropdownMenuItem<String?>(
+                value: null,
+                child: Text('None'),
               ),
-          ],
-          onChanged: _isLoading ? null : _updateFile,
+              for (final file in _files)
+                DropdownMenuItem<String?>(
+                  value: file.id,
+                  child: Text(file.name),
+                ),
+            ],
+            onChanged: _isLoading ? null : _updateFile,
+          ),
         ),
       ),
     );

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rpg_companion/core/markdown/linkable_record_registry.dart';
 import 'package:rpg_companion/core/markdown/markdown_wiki_preview.dart';
 import 'package:rpg_companion/core/markdown/record_link_index.dart';
+import 'package:rpg_companion/core/ui/rpg_form_styles.dart';
 
 /// Markdown editor with formatting toolbar, wiki-link autocomplete, and preview.
 class RpgMarkdownWikiField extends StatefulWidget {
@@ -19,6 +20,7 @@ class RpgMarkdownWikiField extends StatefulWidget {
     this.maxLines,
     this.placeholder = 'Start typing...',
     this.showPreview = true,
+    this.decoration,
     this.onChanged,
   });
 
@@ -30,6 +32,7 @@ class RpgMarkdownWikiField extends StatefulWidget {
   final int? maxLines;
   final String? placeholder;
   final bool showPreview;
+  final InputDecoration? decoration;
   final ValueChanged<String>? onChanged;
 
   @override
@@ -48,6 +51,7 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
   WikiLinkAutocompleteContext? _autocompleteContext;
   int? _autocompleteCursor;
   Timer? _overlayDismissTimer;
+  bool _hovered = false;
 
   @override
   void initState() {
@@ -296,26 +300,65 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (widget.enabled) _buildToolbar(context),
-            CompositedTransformTarget(
-              key: _fieldAnchorKey,
-              link: _layerLink,
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                enabled: widget.enabled,
-                minLines: widget.minLines,
-                maxLines: widget.maxLines,
-                decoration: InputDecoration(
-                  hintText: widget.placeholder,
-                  border: const OutlineInputBorder(),
-                ),
-                onChanged: _onChanged,
-              ),
+            ListenableBuilder(
+              listenable: _focusNode,
+              builder: (context, _) {
+                final baseDecoration =
+                    widget.decoration ?? RpgFormStyles.fieldDecoration(context);
+                final showHover =
+                    widget.enabled && _hovered && !_focusNode.hasFocus;
+                final decoration = AnvilFieldDecoration.withHoverState(
+                  context,
+                  baseDecoration,
+                  hovered: showHover,
+                );
+                final hasToolbar = widget.enabled;
+
+                return MouseRegion(
+                  onEnter: widget.enabled
+                      ? (_) => setState(() => _hovered = true)
+                      : null,
+                  onExit: widget.enabled
+                      ? (_) => setState(() => _hovered = false)
+                      : null,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (hasToolbar)
+                        _buildToolbar(
+                          context,
+                          decoration,
+                          isFocused: _focusNode.hasFocus,
+                        ),
+                      CompositedTransformTarget(
+                        key: _fieldAnchorKey,
+                        link: _layerLink,
+                        child: TextField(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          enabled: widget.enabled,
+                          minLines: widget.minLines,
+                          maxLines: widget.maxLines,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                          decoration: _textFieldDecoration(
+                            context,
+                            decoration,
+                            hasToolbar: hasToolbar,
+                          ),
+                          onChanged: _onChanged,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
             if (widget.showPreview) ...[
-              const SizedBox(height: 12),
-              MarkdownWikiPreview(source: _controller.text),
+              const SizedBox(height: RpgFormStyles.fieldSpacing),
+              MarkdownWikiPreview(
+                source: _controller.text,
+                decoration: widget.decoration,
+              ),
             ],
           ],
         ),
@@ -323,14 +366,88 @@ class _RpgMarkdownWikiFieldState extends State<RpgMarkdownWikiField>
     );
   }
 
-  Widget _buildToolbar(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+  InputDecoration _textFieldDecoration(
+    BuildContext context,
+    InputDecoration base, {
+    required bool hasToolbar,
+  }) {
+    final resolved = base.copyWith(hintText: widget.placeholder);
+    if (!hasToolbar) return resolved;
+
+    final enabledBorder = _asOutline(base.enabledBorder ?? base.border);
+    final focusedBorder =
+        _asOutline(base.focusedBorder ?? base.enabledBorder ?? base.border);
+    final errorBorder =
+        _asOutline(base.errorBorder ?? base.enabledBorder ?? base.border);
+    final focusedErrorBorder = _asOutline(
+      base.focusedErrorBorder ?? base.errorBorder ?? base.enabledBorder,
+    );
+
+    if (enabledBorder == null) return resolved;
+
+    final radius = enabledBorder.borderRadius.resolve(Directionality.of(context));
+    final bottomRadius = BorderRadius.only(
+      bottomLeft: radius.bottomLeft,
+      bottomRight: radius.bottomRight,
+    );
+
+    return resolved.copyWith(
+      border: _flattenBorder(enabledBorder, bottomRadius),
+      enabledBorder: _flattenBorder(enabledBorder, bottomRadius),
+      focusedBorder: _flattenBorder(focusedBorder ?? enabledBorder, bottomRadius),
+      errorBorder: _flattenBorder(errorBorder ?? enabledBorder, bottomRadius),
+      focusedErrorBorder:
+          _flattenBorder(focusedErrorBorder ?? errorBorder ?? enabledBorder, bottomRadius),
+    );
+  }
+
+  OutlineInputBorder? _asOutline(InputBorder? border) {
+    return border is OutlineInputBorder ? border : null;
+  }
+
+  OutlineInputBorder _flattenBorder(
+    OutlineInputBorder border,
+    BorderRadius borderRadius,
+  ) {
+    return OutlineInputBorder(
+      borderSide: border.borderSide,
+      borderRadius: borderRadius,
+    );
+  }
+
+  Widget _buildToolbar(
+    BuildContext context,
+    InputDecoration decoration, {
+    required bool isFocused,
+  }) {
+    final fillColor =
+        decoration.fillColor ?? RpgFormStyles.fieldFillColor(context);
+    final enabledBorder = _asOutline(decoration.enabledBorder ?? decoration.border);
+    final focusedBorder =
+        _asOutline(decoration.focusedBorder ?? decoration.enabledBorder);
+
+    var borderSide = enabledBorder?.borderSide ??
+        BorderSide(color: Theme.of(context).colorScheme.outline);
+    var topRadius = const BorderRadius.vertical(top: Radius.circular(4));
+
+    if (enabledBorder != null) {
+      final radius =
+          enabledBorder.borderRadius.resolve(Directionality.of(context));
+      topRadius = BorderRadius.only(topLeft: radius.topLeft, topRight: radius.topRight);
+      if (isFocused && focusedBorder != null) {
+        borderSide = focusedBorder.borderSide;
+      }
+    }
+
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-        border: Border.all(color: theme.colorScheme.outline.withAlpha(51)),
+        color: fillColor,
+        borderRadius: topRadius,
+        border: Border(
+          top: borderSide,
+          left: borderSide,
+          right: borderSide,
+        ),
       ),
       child: Wrap(
         children: [
