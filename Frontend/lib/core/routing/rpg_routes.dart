@@ -22,6 +22,8 @@ abstract final class RpgRoutes {
 
   static const spellTagCreate = '$referenceSpellTags/new';
 
+  static const damageTypeCreate = '$referenceDamageTypes/new';
+
   static const spellCreate = '$playerSpells/new';
 
   static String spellDetail(String spellId) => '$playerSpells/$spellId';

@@ -25,8 +25,9 @@ import 'package:rpg_companion/features/player/spells/pages/spell_detail_page.dar
 import 'package:rpg_companion/features/player/spells/pages/spell_edit_page.dart';
 import 'package:rpg_companion/features/player/spells/pages/spells_page.dart';
 import 'package:rpg_companion/features/player/spell_tags/pages/spell_tag_create_page.dart';
+import 'package:rpg_companion/features/player/damage_types/pages/damage_type_create_page.dart';
 import 'package:rpg_companion/features/reference/pages/conditions_page.dart';
-import 'package:rpg_companion/features/reference/pages/damage_types_page.dart';
+import 'package:rpg_companion/features/reference/damage_types/pages/damage_types_page.dart';
 import 'package:rpg_companion/features/reference/pages/item_properties_page.dart';
 import 'package:rpg_companion/features/reference/pages/skills_page.dart';
 import 'package:rpg_companion/features/reference/pages/spell_lists_page.dart';
@@ -156,6 +157,12 @@ GoRouter buildRpgRouter({
           _shellBranch(
             path: RpgRoutes.referenceDamageTypes,
             child: const DamageTypesPage(),
+            nestedRoutes: [
+              GoRoute(
+                path: 'new',
+                builder: (context, state) => const DamageTypeCreatePage(),
+              ),
+            ],
           ),
           _shellBranch(
             path: RpgRoutes.referenceItemProperties,
@@ -339,6 +346,10 @@ abstract final class RpgNavigation {
 
   static Future<void> openSpellTagCreate(BuildContext context) {
     return context.push(RpgRoutes.spellTagCreate);
+  }
+
+  static Future<void> openDamageTypeCreate(BuildContext context) {
+    return context.push(RpgRoutes.damageTypeCreate);
   }
 
   static Future<void> openSpellCreate(BuildContext context) {

@@ -1,6 +1,7 @@
 import 'package:anvil_foundry/anvil_foundry.dart';
 import 'package:rpg_companion/features/dm_tools/resources/services/resource_record_resolver.dart';
 import 'package:rpg_companion/features/player/classes/models/character_class.dart';
+import 'package:rpg_companion/features/player/damage_types/models/damage_type.dart';
 import 'package:rpg_companion/features/player/spells/models/spell.dart';
 import 'package:rpg_companion/features/player/spell_tags/models/spell_tag.dart';
 
@@ -17,6 +18,14 @@ List<SpellTag> resolveSpellTags(RecordState state, RecordQuery query) {
     state: state,
     query: query,
     recordType: 'spell_tags',
+  );
+}
+
+List<DamageType> resolveDamageTypes(RecordState state, RecordQuery query) {
+  return resolveQueryRecords<DamageType>(
+    state: state,
+    query: query,
+    recordType: 'damage_types',
   );
 }
 

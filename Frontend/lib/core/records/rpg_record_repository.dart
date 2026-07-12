@@ -156,6 +156,9 @@ class RpgRecordRepository implements RecordRepositoryService {
     if (type == 'spell_tags') {
       return [spellTagsListQuery.queryKey];
     }
+    if (type == 'damage_types') {
+      return [damageTypesListQuery.queryKey];
+    }
     if (type == 'spells') {
       return [spellsListQuery.queryKey];
     }
@@ -179,6 +182,9 @@ class RpgRecordRepository implements RecordRepositoryService {
     if (type == 'spell_tags') {
       return [spellTagsListQuery.queryKey];
     }
+    if (type == 'damage_types') {
+      return [damageTypesListQuery.queryKey];
+    }
     if (type == 'spells') {
       return [spellsListQuery.queryKey];
     }
@@ -190,6 +196,7 @@ const authorsListQuery = RecordQuery(recordType: 'authors', limit: 100);
 const filesListQuery = RecordQuery(recordType: 'files', limit: 100);
 const classesListQuery = RecordQuery(recordType: 'classes', limit: 100);
 const spellTagsListQuery = RecordQuery(recordType: 'spell_tags', limit: 100);
+const damageTypesListQuery = RecordQuery(recordType: 'damage_types', limit: 100);
 const spellsListQuery = RecordQuery(recordType: 'spells', limit: 100);
 
 RecordQuery filesForAuthorQuery(String authorId) {

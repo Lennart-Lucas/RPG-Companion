@@ -205,6 +205,58 @@ async def test_spell_tag_crud(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_damage_type_crud(client: AsyncClient):
+    token = await _register_and_login(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    create = await client.post(
+        f"{API}/damage_types",
+        headers=headers,
+        json={
+            "name": "Fire",
+            "description": "Burning damage.",
+            "icon": "Fire Flame",
+            "color": 4294198079,
+        },
+    )
+    assert create.status_code == 201
+    damage_type = create.json()
+    assert damage_type["name"] == "Fire"
+    assert damage_type["description"] == "Burning damage."
+    assert damage_type["icon"] == "Fire Flame"
+    assert damage_type["color"] == 4294198079
+    damage_type_id = damage_type["id"]
+
+    listing = await client.get(f"{API}/damage_types", headers=headers)
+    assert listing.status_code == 200
+    assert listing.json()["total"] == 1
+
+    detail = await client.get(
+        f"{API}/damage_types/{damage_type_id}", headers=headers
+    )
+    assert detail.status_code == 200
+
+    updated = await client.patch(
+        f"{API}/damage_types/{damage_type_id}",
+        headers=headers,
+        json={
+            "name": "Cold",
+            "description": "Freezing damage.",
+            "icon": "Snowflake",
+            "color": 4280391411,
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "Cold"
+    assert updated.json()["icon"] == "Snowflake"
+
+    deleted = await client.delete(
+        f"{API}/damage_types/{damage_type_id}", headers=headers
+    )
+    assert deleted.status_code == 204
+
+
+@pytest.mark.asyncio
 async def test_spell_crud(client: AsyncClient):
     token = await _register_and_login(client)
     headers = {"Authorization": f"Bearer {token}"}

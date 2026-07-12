@@ -3,6 +3,7 @@
 from app.models.author import Author
 from app.models.base import Base
 from app.models.character_class import CharacterClass
+from app.models.damage_type import DamageType
 from app.models.file import ResourceFile
 from app.models.refresh_token import RefreshToken
 from app.models.spell import Spell
@@ -13,6 +14,7 @@ __all__ = [
     "Author",
     "Base",
     "CharacterClass",
+    "DamageType",
     "RefreshToken",
     "ResourceFile",
     "SpellTag",
