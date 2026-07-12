@@ -1,9 +1,8 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import func, insert, select, update
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.damage_type import DamageType
 from app.schemas.damage_type import (
     DamageTypeCreate,
     DamageTypeResponse,
@@ -11,30 +10,94 @@ from app.schemas.damage_type import (
 )
 from app.services.resource_helpers import clamp_pagination
 
-_damage_types = DamageType.__table__
-
-_RETURNING = (
-    _damage_types.c.id,
-    _damage_types.c.name,
-    _damage_types.c.description,
-    _damage_types.c.icon,
-    _damage_types.c.color,
-    _damage_types.c.created_at,
-    _damage_types.c.updated_at,
+_INSERT_SQL = text(
+    """
+    INSERT INTO damage_types (user_id, name, description, icon, color)
+    VALUES (:user_id, :name, :description, :icon, :color)
+    RETURNING id, name, description, icon, color, created_at, updated_at
+    """
 )
 
-_ACTIVE = _damage_types.c.deleted_at.is_(None)
+_SELECT_SQL = text(
+    """
+    SELECT id, name, description, icon, color, created_at, updated_at
+    FROM damage_types
+    WHERE id = :damage_type_id
+      AND user_id = :user_id
+      AND deleted_at IS NULL
+    """
+)
+
+_LIST_SQL = text(
+    """
+    SELECT id, name, description, icon, color, created_at, updated_at
+    FROM damage_types
+    WHERE user_id = :user_id
+      AND deleted_at IS NULL
+    ORDER BY name ASC
+    LIMIT :limit OFFSET :offset
+    """
+)
+
+_COUNT_SQL = text(
+    """
+    SELECT COUNT(*)
+    FROM damage_types
+    WHERE user_id = :user_id
+      AND deleted_at IS NULL
+    """
+)
+
+_DELETE_SQL = text(
+    """
+    UPDATE damage_types
+    SET deleted_at = :deleted_at
+    WHERE id = :damage_type_id
+      AND user_id = :user_id
+      AND deleted_at IS NULL
+    RETURNING id
+    """
+)
 
 
 def _response_from_row(row) -> DamageTypeResponse:
-    return DamageTypeResponse(**row._mapping)
+    mapping = row._mapping if hasattr(row, "_mapping") else row
+    return DamageTypeResponse(
+        id=mapping["id"],
+        name=mapping["name"],
+        description=mapping["description"],
+        icon=mapping["icon"],
+        color=mapping["color"],
+        created_at=mapping["created_at"],
+        updated_at=mapping["updated_at"],
+    )
 
 
-def _owned(user_id: int, damage_type_id: int):
-    return (
-        _damage_types.c.id == damage_type_id,
-        _damage_types.c.user_id == user_id,
-        _ACTIVE,
+def _update_params(data: DamageTypeUpdate) -> dict[str, object]:
+    values: dict[str, object] = {}
+    fields_set = data.model_fields_set
+    if data.name is not None:
+        values["name"] = data.name
+    if "description" in fields_set:
+        values["description"] = data.description
+    if "icon" in fields_set:
+        values["icon"] = data.icon
+    if "color" in fields_set:
+        values["color"] = data.color
+    return values
+
+
+def _build_update_sql(values: dict[str, object]):
+    assignments = ", ".join(f"{column} = :{column}" for column in values)
+    return text(
+        f"""
+        UPDATE damage_types
+        SET {assignments}
+        WHERE id = :damage_type_id
+          AND user_id = :user_id
+          AND deleted_at IS NULL
+        RETURNING id, name, description, icon, color, created_at, updated_at
+        """
     )
 
 
@@ -42,7 +105,8 @@ async def get_damage_type(
     session: AsyncSession, user_id: int, damage_type_id: int
 ) -> DamageTypeResponse:
     result = await session.execute(
-        select(*_RETURNING).where(*_owned(user_id, damage_type_id))
+        _SELECT_SQL,
+        {"damage_type_id": damage_type_id, "user_id": user_id},
     )
     row = result.one_or_none()
     if row is None:
@@ -59,15 +123,14 @@ async def create_damage_type(
     session: AsyncSession, user_id: int, data: DamageTypeCreate
 ) -> DamageTypeResponse:
     result = await session.execute(
-        insert(_damage_types)
-        .values(
-            user_id=user_id,
-            name=data.name,
-            description=data.description,
-            icon=data.icon,
-            color=data.color,
-        )
-        .returning(*_RETURNING)
+        _INSERT_SQL,
+        {
+            "user_id": user_id,
+            "name": data.name,
+            "description": data.description,
+            "icon": data.icon,
+            "color": data.color,
+        },
     )
     return _response_from_row(result.one())
 
@@ -80,20 +143,13 @@ async def list_damage_types(
     offset: int = 0,
 ) -> tuple[list[DamageTypeResponse], int]:
     limit, offset = clamp_pagination(limit, offset)
-    count_stmt = (
-        select(func.count())
-        .select_from(_damage_types)
-        .where(_damage_types.c.user_id == user_id, _ACTIVE)
+    total = (
+        await session.execute(_COUNT_SQL, {"user_id": user_id})
+    ).scalar_one()
+    result = await session.execute(
+        _LIST_SQL,
+        {"user_id": user_id, "limit": limit, "offset": offset},
     )
-    total = (await session.execute(count_stmt)).scalar_one()
-    stmt = (
-        select(*_RETURNING)
-        .where(_damage_types.c.user_id == user_id, _ACTIVE)
-        .order_by(_damage_types.c.name.asc())
-        .limit(limit)
-        .offset(offset)
-    )
-    result = await session.execute(stmt)
     items = [_response_from_row(row) for row in result.all()]
     return items, total
 
@@ -104,39 +160,39 @@ async def update_damage_type(
     damage_type_id: int,
     data: DamageTypeUpdate,
 ) -> DamageTypeResponse:
-    await get_damage_type(session, user_id, damage_type_id)
-
-    values: dict[str, object] = {}
-    fields_set = data.model_fields_set
-    if data.name is not None:
-        values["name"] = data.name
-    if "description" in fields_set:
-        values["description"] = data.description
-    if "icon" in fields_set:
-        values["icon"] = data.icon
-    if "color" in fields_set:
-        values["color"] = data.color
-
+    values = _update_params(data)
     if not values:
         return await get_damage_type(session, user_id, damage_type_id)
 
     result = await session.execute(
-        update(_damage_types)
-        .where(*_owned(user_id, damage_type_id))
-        .values(**values)
-        .returning(*_RETURNING)
+        _build_update_sql(values),
+        {
+            **values,
+            "damage_type_id": damage_type_id,
+            "user_id": user_id,
+        },
     )
-    return _response_from_row(result.one())
+    row = result.one_or_none()
+    if row is None:
+        from fastapi import HTTPException, status
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Damage type not found",
+        )
+    return _response_from_row(row)
 
 
 async def delete_damage_type(
     session: AsyncSession, user_id: int, damage_type_id: int
 ) -> None:
     result = await session.execute(
-        update(_damage_types)
-        .where(*_owned(user_id, damage_type_id))
-        .values(deleted_at=datetime.now(UTC))
-        .returning(_damage_types.c.id)
+        _DELETE_SQL,
+        {
+            "damage_type_id": damage_type_id,
+            "user_id": user_id,
+            "deleted_at": datetime.now(UTC),
+        },
     )
     if result.one_or_none() is None:
         from fastapi import HTTPException, status

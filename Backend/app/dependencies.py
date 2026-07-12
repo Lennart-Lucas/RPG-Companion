@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import async_session_factory
@@ -14,14 +15,17 @@ security_scheme = HTTPBearer(auto_error=False)
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_factory() as session:
-        async with session.begin():
+        try:
             yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
-async def get_current_user(
-    session: AsyncSession = Depends(get_db),
-    credentials: HTTPAuthorizationCredentials | None = Depends(security_scheme),
-) -> User:
+def _parse_bearer_user_id(
+    credentials: HTTPAuthorizationCredentials | None,
+) -> int:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -30,7 +34,7 @@ async def get_current_user(
         )
     try:
         payload = decode_access_token(credentials.credentials)
-        user_id = parse_user_id_from_token(payload)
+        return parse_user_id_from_token(payload)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -38,6 +42,12 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
+
+async def get_current_user(
+    session: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_scheme),
+) -> User:
+    user_id = _parse_bearer_user_id(credentials)
     user = await auth_service.get_user_by_id(session, user_id)
     if user is None:
         raise HTTPException(
@@ -57,3 +67,22 @@ async def get_current_active_user(
             detail="Account is disabled",
         )
     return user
+
+
+async def get_current_active_user_id(
+    session: AsyncSession = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_scheme),
+) -> int:
+    """Resolve the active user id without loading a full User ORM instance."""
+    user_id = _parse_bearer_user_id(credentials)
+    result = await session.execute(
+        select(User.id).where(User.id == user_id, User.is_active.is_(True))
+    )
+    active_user_id = result.scalar_one_or_none()
+    if active_user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or disabled",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return active_user_id
